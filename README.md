@@ -68,7 +68,7 @@ S1・S2 ボタンを おすと、LED の 光りかたが 変わります。
 ## 紹介動画
 
 <p align="center">
-  <a href="https://youtu.be/1pB3R3t_cCU"><img src="https://img.youtube.com/vi/1pB3R3t_cCU/hqdefault.jpg" width="560" alt="TTA-8 紹介動画 (YouTube)"></a>
+  <a href="https://youtu.be/1pB3R3t_cCU"><img src="docs/video/thumbnail.jpg" width="560" alt="TTA-8 紹介動画 (YouTube)"></a>
 </p>
 
 **[▶ YouTube で 見る](https://youtu.be/1pB3R3t_cCU)**（約2分。CPU の 基本 → READ/WRITE で 計算 → 本物の ボードで 動かす まで）
