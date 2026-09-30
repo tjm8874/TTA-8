@@ -37,7 +37,7 @@ WRITE OUT         ; LED に 出す → __○___ (8 = 001000)
 
 ## ブラウザで ためそう（ボードが なくても OK）
 
-`debugger/index.html` を ダブルクリック！
+**[▶ TTA-8 ラボを ひらく](https://tjm8874.github.io/TTA-8/debugger/)**（インストール なし。ダウンロードした 人は `debugger/index.html` を ダブルクリック）
 
 <p align="center"><img src="docs/guide/img/lab_step.png" width="720" alt="TTA-8 ラボ"></p>
 
@@ -55,7 +55,7 @@ S1・S2 ボタンを おすと、LED の 光りかたが 変わります。
 
 ## せつめい書
 
-**[せつめい書を 読む](docs/guide/README.md)**　（[Web 版](docs/guide/index.html)・[PDF 版](docs/guide/TTA-8_guide.pdf)）
+**[せつめい書を 読む](docs/guide/README.md)**　（[Web 版](https://tjm8874.github.io/TTA-8/docs/guide/)・[PDF 版](docs/guide/TTA-8_guide.pdf)）
 
 | 章 | |
 |---|---|
