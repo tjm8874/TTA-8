@@ -8,6 +8,7 @@ LIST = [  # key, 言語, 名前, ファイル
     ('add_bas',     'basic', 'はじめての たし算', 'basic/add.bas'),
     ('count_bas',   'basic', '2進数カウンター', 'basic/count.bas'),
     ('mul_bas',     'basic', 'かけ算 6×7', 'basic/multiply.bas'),
+    ('div_bas',     'basic', 'わり算 17÷5', 'basic/divide.bas'),
     ('flasher',     'asm',   'LEDフラッシャー', 'flasher.asm'),
     ('add',         'asm',   'はじめての たし算', 'add.asm'),
     ('count',       'asm',   '2進数カウンター', 'count.asm'),

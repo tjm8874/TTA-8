@@ -36,18 +36,22 @@ hr { border:none; border-top:1px dashed var(--line); margin:24px 0; }
 .cover { text-align:center; }
 @media (max-width: 820px) { .wrap { grid-template-columns: 1fr; } nav.toc { position:static; max-height:none; } main section.ch { padding:18px 16px; } }
 @media print {
-  body { background:#fff; font-size:11pt; } header.top, nav.toc { display:none; }
+  body { background:#fff; font-size:11pt; line-height:1.65; } header.top, nav.toc { display:none; }
   .wrap { display:block; padding:0; max-width:none; }
   main section.ch { border:none; border-radius:0; padding:0; margin:0; break-before:page; }
   main section.ch:first-child { break-before:auto; }
   pre, table, img, blockquote { break-inside:avoid; } h2, h3 { break-after:avoid; }
+  pre { white-space:pre-wrap; overflow-wrap:anywhere; }
+  table { display:table; table-layout:auto; break-inside:avoid; }
+  th, td { overflow-wrap:anywhere; }
+  tr { break-inside:avoid; }
   a { color:inherit; text-decoration:none; }
 }
 @page { size:A4; margin:16mm 14mm; }
 </style></head>
 <body>
 <header class="top"><b>TTA-8</b><span>READ と WRITE だけの 8bit CPU ― せつめい書</span></header>
-<div class="wrap"><nav class="toc"><a href="#ch-README">はじめに・もくじ</a><a href="#ch-01_cpu">1. CPU って なんだろう？</a><a href="#ch-02_tta8">2. TTA-8 の しくみ</a><a href="#ch-03_setup">3. じゅんびしよう</a><a href="#ch-04_run">4. 動かしてみよう</a><a href="#ch-05_lab">5. TTA-8 ラボで 中を のぞこう</a><a href="#ch-06_basic">6. TinyBASIC改 で プログラムを 書こう</a><a href="#ch-07_asm">7. アセンブリで 書いてみよう</a><a href="#ch-08_verilog">8. CPU の 設計図を 読もう</a><a href="#ch-09_ai">9. AI に こうやって たのもう</a><a href="#ch-10_next">10. つぎの ぼうけんへ</a><a href="#ch-appendix">ふろく</a></nav><main><section class="ch" id="ch-README"><h1 id="tta-8-せつめい書-8bit-の-小さい-cpu-を-作って-動かそう">TTA-8 せつめい書 ― 8bit の 小さい CPU を 作って 動かそう</h1>
+<div class="wrap"><nav class="toc"><a href="#ch-README">はじめに・もくじ</a><a href="#ch-01_cpu">1. CPU って なんだろう？</a><a href="#ch-02_tta8">2. TTA-8 の しくみ</a><a href="#ch-03_setup">3. じゅんびしよう</a><a href="#ch-04_run">4. 動かしてみよう</a><a href="#ch-05_lab">5. TTA-8 ラボで 中を のぞこう</a><a href="#ch-06_basic">6. TinyBASIC改 で プログラムを 書こう</a><a href="#ch-07_asm">7. アセンブリで 書いてみよう</a><a href="#ch-08_verilog">8. CPU の 設計図を 読もう</a><a href="#ch-09_ai">9. AI に こうやって たのもう</a><a href="#ch-10_next">10. つぎの ぼうけんへ</a><a href="#ch-11_calculation">発展1. ADD・SUB・NAND で どこまで計算できる？</a><a href="#ch-12_expansion">発展2. CPU の箱と番地を 大きくするには？</a><a href="#ch-appendix">ふろく</a></nav><main><section class="ch" id="ch-README"><h1 id="tta-8-せつめい書-8bit-の-小さい-cpu-を-作って-動かそう">TTA-8 せつめい書 ― 8bit の 小さい CPU を 作って 動かそう</h1>
 <p><img src="img/flasher.gif" width="480" alt="Tang Nano 20K の LED が ボタンで 光りかたを 変える"></p>
 <p>この せつめい書では、<strong>命令が 2つ (READ と WRITE) しかない 8bit CPU「TTA-8」</strong> を、
 FPGA ボード <strong>Tang Nano 20K</strong> の 中に 作って 動かします。
@@ -99,7 +103,7 @@ FPGA ボード <strong>Tang Nano 20K</strong> の 中に 作って 動かしま�
 </tr>
 <tr>
 <td><a href="#ch-08_verilog">8. CPU の 設計図を 読もう</a></td>
-<td>Verilog と チューリング完全</td>
+<td>Verilog の文法・クロック・値の保存</td>
 <td>もっと 深く 知りたい人</td>
 </tr>
 <tr>
@@ -111,6 +115,16 @@ FPGA ボード <strong>Tang Nano 20K</strong> の 中に 作って 動かしま�
 <td><a href="#ch-10_next">10. つぎの ぼうけんへ</a></td>
 <td>ブレッドボードで 回路を ふやそう</td>
 <td>ぜんぶ 読んだ人</td>
+</tr>
+<tr>
+<td><a href="#ch-11_calculation">発展1</a></td>
+<td>わり算・繰り返し・NAND</td>
+<td>計算を組み立てたい人</td>
+</tr>
+<tr>
+<td><a href="#ch-12_expansion">発展2</a></td>
+<td>16bit化・外部メモリ・入出力・ページ</td>
+<td>改造の仕組みを考えたい人</td>
 </tr>
 <tr>
 <td><a href="#ch-appendix">ふろく</a></td>
@@ -237,7 +251,7 @@ V は それを 取りに 行くだけ。
 このような CPU を <strong>TTA（Transport Triggered Architecture ＝ 運ぶと 動く しくみ）</strong> と いいます。</p>
 <h2 id="命令の-形">命令の 形</h2>
 <p><img alt="命令の形" src="img/inst_format.svg" /></p>
-<p>1つの 命令は 8bit（1バイト）です。
+<p>命令の指定は 8bit（1バイト）です。<code>READ IMM</code> だけは、次の1バイトに数を置くので、合計2バイトを使います。
 いちばん 左の 1bit で READ か WRITE かを えらび、
 のこりの 7bit で「どの 部品と やりとりするか」（<strong>アドレス</strong>）を えらびます。</p>
 <h2 id="部品と-アドレスの-一覧アドレスマップ">部品と アドレスの 一覧（アドレスマップ）</h2>
@@ -335,7 +349,7 @@ WRITE OUT         ; LED に 8 を 出す → 001000
 <p>V が 数を 運んでいるだけなのに、ちゃんと 足し算が できました。
 LED には 8（2進数で <code>001000</code>）が 光ります。</p>
 <h2 id="ジャンプも書くだけ">ジャンプも「書くだけ」</h2>
-<p>CPU は <strong>PC（プログラムカウンター）</strong> という 番号で「いま 何番目の 命令か」を おぼえています。
+<p>CPU は <strong>PC（プログラムカウンター）</strong> という 番号で「実行する命令の バイト番地」を おぼえています。
 ふつうは 1つずつ 進みますが、</p>
 <ul>
 <li><strong>JMP に 書く</strong> と、PC が その 数に なります（＝ジャンプ）</li>
@@ -343,18 +357,18 @@ LED には 8（2進数で <code>001000</code>）が 光ります。</p>
 </ul>
 <p>JZ が あるので「0 に なるまで くりかえす」「ボタンが 押されていたら こっちへ」
 といった <strong>判断</strong> が できます。
-くわしくは <a href="#ch-08_verilog">8章</a> で、これだけで どんな 計算も できる（<strong>チューリング完全</strong>）ことを 説明します。</p>
+<a href="#ch-11_calculation">発展1</a> では、この仕組みで わり算や論理演算を組み立てます。</p>
 <h2 id="cpu-の-中身-まとめ">CPU の 中身 まとめ</h2>
 <p><img alt="CPU の中身" src="img/lab_cpu.png" /></p>
 <ul>
-<li><strong>PC</strong>：いま 何番目の 命令か（8bit）</li>
+<li><strong>PC</strong>：実行する命令の バイト番地（8bit）</li>
 <li><strong>V</strong>：数を 運ぶ はこびや（8bit）</li>
-<li><strong>プログラム（ROM）</strong>：命令が 256こ まで 入る</li>
-<li><strong>変数（RAM）</strong>：$A〜$Z と $0〜$5 の 32こ</li>
+<li><strong>プログラム（ROM）</strong>：命令と定数を合わせて 256バイトまで 入る</li>
+<li><strong>変数（RAM）</strong>：$A〜$Z と $0〜$5 の 32こ（起動・リセット時はすべて0）</li>
 <li><strong>ALU</strong>：A と B から たし算・ひき算・NAND を 計算</li>
 <li><strong>IN / OUT</strong>：ボタンと LED</li>
 </ul>
-<p>これで ぜんぶです。CPU の 設計図は、コメントを のぞくと <strong>たった 51行</strong> です。</p></section><section class="ch" id="ch-03_setup"><h1 id="3-じゅんびしよう">3. じゅんびしよう</h1>
+<p>これで ぜんぶです。CPU の 設計図は、コメントと 空行を のぞくと <strong>たった 53行</strong> です。</p></section><section class="ch" id="ch-03_setup"><h1 id="3-じゅんびしよう">3. じゅんびしよう</h1>
 <h2 id="用意するもの">用意するもの</h2>
 <table>
 <thead>
@@ -389,7 +403,7 @@ LED には 8（2進数で <code>001000</code>）が 光ります。</p>
 <li>ZIP を 開いて（展開して）、すきな 場所に おく</li>
 </ol>
 <p>中身は こうなっています。</p>
-<pre><code>Minimal_CPU/
+<pre><code>TTA-8-main/        ← ZIP を 開くと この 名前（TTA-8 に 変えても OK）
 ├ FPGA_Tool/      ← ボードに 書きこむ 道具（ダブルクリックで 使う）
 │  ├ Windows/
 │  └ Mac/
@@ -875,85 +889,237 @@ LED が 5（<code>000101</code>）→ 4 → 3 → 2 → 1 → 0 と 変わって
 <li>BASIC で 書いた <code>$C = $A + $B</code> が どんな アセンブリに なるか、TTA-8 ラボの アセンブリ タブで 見てみよう</li>
 <li><code>ALU_NAND</code> だけで <code>AND</code> を 作れるかな？（ヒント：NAND を 2回）</li>
 </ol></section><section class="ch" id="ch-08_verilog"><h1 id="8-cpu-の-設計図を-読もう">8. CPU の 設計図を 読もう</h1>
-<p>TTA-8 の 設計図は <code>hdl/tta8.v</code> に あります。
-<strong>Verilog（ベリログ）</strong> という、回路を 書くための ことばで 書かれています。
-コメントを のぞくと <strong>51行</strong>。いっしょに 読んでみましょう。</p>
-<h2 id="①-部品を-用意する">① 部品を 用意する</h2>
-<pre><code class="language-verilog">reg [7:0] rom [0:255];            // プログラム 256バイト
-initial $readmemh(&quot;program.hex&quot;, rom);
-
-reg  [7:0] pc;                    // いま 何番目の 命令か
-reg  [7:0] v;                     // V : たった1つのレジスタ
-reg  [7:0] alu_a, alu_b;          // ALU に 入れる数
-reg  [7:0] ram [0:31];            // 変数 $A-$Z, $0-$5
+<p>ここまで、READ と WRITE を 使って プログラムを 動かしてきました。
+今度は、その命令を 実行する回路を 読みます。設計図は <code>hdl/tta8.v</code>。
+<strong>Verilog（ベリログ）</strong> という 回路を 書くことばで、コメントと 空行を のぞくと <strong>53行</strong> です。</p>
+<h2 id="①-8bit-の箱と箱のならびを-用意する">① 8bit の箱と、箱のならびを 用意する</h2>
+<pre><code class="language-verilog">reg [7:0] v;
+reg [7:0] ram [0:31];
 </code></pre>
-<p><code>reg [7:0]</code> は「8bit の 箱」という 意味です。
-<code>program.hex</code> を ROM に 読みこんでいます。</p>
-<h2 id="②-命令を-分ける">② 命令を 分ける</h2>
-<pre><code class="language-verilog">wire [7:0] inst  = rom[pc];       // いまの 命令
-wire       write = inst[7];       // いちばん左の bit : 0=READ 1=WRITE
-wire [6:0] addr  = inst[6:0];     // のこり 7bit : アドレス
+<p><code>[7:0]</code> は「7番から 0番までの 8マス」。<code>v</code> は 数を運ぶための 箱です。
+<code>ram [0:31]</code> は、その 8bit の箱を <strong>32個</strong> ならべる指定です。
+<code>ram[3]</code> と書けば 3番の箱を 選べます。番号は 0 からなので、4個目です。</p>
+<p><img alt="Verilog の箱とビットの読み方" src="img/verilog_bits.svg" /></p>
+<table>
+<thead>
+<tr>
+<th>書き方</th>
+<th>このCPUでの役目</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>reg [7:0] v;</code></td>
+<td>クロックの合図で 値を覚える V</td>
+</tr>
+<tr>
+<td><code>reg [7:0] pc;</code></td>
+<td>実行する命令の <strong>バイト番地</strong> を覚える PC</td>
+</tr>
+<tr>
+<td><code>reg [7:0] alu_a, alu_b;</code></td>
+<td>計算に使う A と B を覚える</td>
+</tr>
+<tr>
+<td><code>reg [7:0] rom [0:255];</code></td>
+<td>プログラム用の 256バイトの配列</td>
+</tr>
+<tr>
+<td><code>wire [7:0] inst = rom[pc];</code></td>
+<td>PC が選んだ命令を <code>inst</code> という名前で 取り出す</td>
+</tr>
+</tbody>
+</table>
+<p>V は「数を運ぶ専用」のレジスタです。PC や ALU_A・ALU_B も 値を覚える部品です。
+なお、<code>reg</code> と書くだけで 必ず記憶回路になるわけではありません。
+<strong>どの <code>always</code> の中で、どう値を決めるか</strong> も関係します。次の図で 区別しましょう。</p>
+<h2 id="②-いつも計算と合図で保存を-分ける">② 「いつも計算」と「合図で保存」を 分ける</h2>
+<p><img alt="いつも計算する回路と、クロックで保存する回路" src="img/verilog_clock.svg" /></p>
+<pre><code class="language-verilog">always @* begin
+    rdata = alu_a + alu_b;
+end
 </code></pre>
-<p><a href="#ch-02_tta8">2章</a> の 命令の 形 そのままです。</p>
-<h2 id="③-read-したら-何が-読めるか">③ READ したら 何が 読めるか</h2>
+<p>これは 説明用に 足し算だけを 抜き出した例です。
+<code>always @*</code> は、使っている値が変わると 答えも変わる回路を表します。
+A が 3、B が 5 なら、少しの回路の遅れのあとで 答えは 8 になります。
+実際のCPUでは <code>case</code> を使い、足し算・引き算・ほかの部品の どれを読むかも 選びます。</p>
+<pre><code class="language-verilog">always @(posedge clk) begin
+    if (step) v &lt;= rdata;
+end
+</code></pre>
+<p>こちらは、クロックが <strong>0 から 1 に変わる瞬間</strong> に 値を保存する回路です。
+<code>posedge</code> は この立ち上がりを指します。さらに <code>step</code> が 1 のときだけ 保存します。
+実際のCPUでは READ のときに V へ保存し、WRITE のときは 書き込み先へ保存します。</p>
+<p><code>=</code> は この例では「計算中の値を決める」、<code>&lt;=</code> は「合図の直前の値を使い、保存する値を予約する」書き方です。
+この <code>&lt;=</code> は「以下」という比較ではありません。</p>
+<p>たとえば、同じクロック処理の中に 次の2行が あったとします。</p>
+<pre><code class="language-verilog">v &lt;= rdata;
+alu_a &lt;= v;
+</code></pre>
+<p>合図の直前が <code>v = 3</code>、<code>rdata = 8</code> なら、更新後は <strong>V が 8、A が 3</strong> になります。
+上の行で予約した 8 を、下の行がすぐ使うわけではありません。
+TTA-8 では READ と WRITE を別々の命令にしているので、この2つの保存を 1命令では行いません。</p>
+<h2 id="③-命令のビットを-分けて読む相手を選ぶ">③ 命令のビットを 分けて、読む相手を選ぶ</h2>
+<pre><code class="language-verilog">wire [7:0] inst = rom[pc];
+wire       write = inst[7];
+wire [6:0] addr = inst[6:0];
+</code></pre>
+<p><code>inst[7]</code> は 左はしの1bit。<code>inst[6:0]</code> は 残りの7bitです。
+<code>write</code> が 0 なら READ、1 なら WRITE。<code>addr</code> が 相手の番号です。</p>
 <pre><code class="language-verilog">case (addr)
-    7'h00:   rdata = alu_a;               // ALU_A
-    7'h01:   rdata = alu_b;               // ALU_B
-    7'h02:   rdata = alu_a + alu_b;       // ALU_ADD
-    7'h03:   rdata = ~(alu_a &amp; alu_b);    // ALU_NAND
-    7'h04:   rdata = alu_a - alu_b;       // ALU_SUB
-    7'h12:   rdata = rom[pc + 8'd1];      // IMM (次の1バイト)
-    7'h7E:   rdata = {6'b0, btn};         // IN
+    7'h00: rdata = alu_a;
+    7'h01: rdata = alu_b;
+    7'h02: rdata = alu_a + alu_b;
+    7'h03: rdata = ~(alu_a &amp; alu_b);
+    7'h04: rdata = alu_a - alu_b;
+    7'h12: rdata = rom[pc + 8'd1];
+    7'h7E: rdata = {6'b0, btn};
     default: rdata = is_ram ? ram[addr[4:0]] : 8'h00;
 endcase
 </code></pre>
-<p><strong>ALU は ここだけ</strong> です。<code>+</code> <code>-</code> <code>&amp;</code> <code>~</code> を 書くだけで、FPGA が 計算回路を 作ってくれます。</p>
-<h2 id="④-1命令を-実行する">④ 1命令を 実行する</h2>
-<pre><code class="language-verilog">pc &lt;= pc + 8'd1;                          // ふつうは 次へ
-if (!write) begin                         // ===== READ
-    v &lt;= rdata;
-    if (addr == 7'h12) pc &lt;= pc + 8'd2;   // IMM は 定数を とばす
-end else begin                            // ===== WRITE
-    case (addr)
-        7'h00: alu_a &lt;= v;                // ALU_A
-        7'h01: alu_b &lt;= v;                // ALU_B
-        7'h10: pc &lt;= v;                   // JMP
-        7'h11: if (alu_a == 0) pc &lt;= v;   // JZ (ALU_A が 0 なら)
-        7'h7F: led &lt;= v[5:0];             // OUT
-        default: if (is_ram) ram[addr[4:0]] &lt;= v;
-    endcase
+<p><code>case</code> は 番号ごとに 選ぶものを分けます。<code>default</code> は どの番号にも当たらないときです。
+最後の行の <code>条件 ? はい : いいえ</code> は、RAM の番号なら RAM を読み、それ以外なら 0 を選びます。</p>
+<table>
+<thead>
+<tr>
+<th>記号</th>
+<th>読み方</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>7'h12</code></td>
+<td>7bitで表した 16進数の12（10進数では18）</td>
+</tr>
+<tr>
+<td><code>8'd1</code></td>
+<td>8bitで表した 10進数の1</td>
+</tr>
+<tr>
+<td><code>&amp;</code> / <code>~</code></td>
+<td>ビットごとの AND / 0と1の反転</td>
+</tr>
+<tr>
+<td><code>{6'b0, btn}</code></td>
+<td>6個の0と、2bitのボタンの値をつないで 8bitにする</td>
+</tr>
+<tr>
+<td><code>==</code> / <code>!</code></td>
+<td>等しいかを調べる / 条件を反対にする</td>
+</tr>
+</tbody>
+</table>
+<p>ALU の答えは、A と B が変われば変わります。
+READ は、その時点で用意されている答えを V に覚えます。</p>
+<h2 id="④-クロックごとの変化を-追ってみよう">④ クロックごとの変化を 追ってみよう</h2>
+<p><a href="#ch-02_tta8">2章</a> の足し算を、0番地から入れた場合です。
+<code>READ IMM</code> は 命令と数で2バイト、ほかは1バイトです。</p>
+<table>
+<thead>
+<tr>
+<th>合図</th>
+<th style="text-align: right;">実行前のPC</th>
+<th>実行する命令</th>
+<th style="text-align: right;">実行後のV</th>
+<th>実行後のA / B</th>
+<th style="text-align: right;">次のPC</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td style="text-align: right;">0</td>
+<td>READ IMM, 3</td>
+<td style="text-align: right;">3</td>
+<td>0 / 0</td>
+<td style="text-align: right;">2</td>
+</tr>
+<tr>
+<td>2</td>
+<td style="text-align: right;">2</td>
+<td>WRITE ALU_A</td>
+<td style="text-align: right;">3</td>
+<td>3 / 0</td>
+<td style="text-align: right;">3</td>
+</tr>
+<tr>
+<td>3</td>
+<td style="text-align: right;">3</td>
+<td>READ IMM, 5</td>
+<td style="text-align: right;">5</td>
+<td>3 / 0</td>
+<td style="text-align: right;">5</td>
+</tr>
+<tr>
+<td>4</td>
+<td style="text-align: right;">5</td>
+<td>WRITE ALU_B</td>
+<td style="text-align: right;">5</td>
+<td>3 / 5</td>
+<td style="text-align: right;">6</td>
+</tr>
+<tr>
+<td>5</td>
+<td style="text-align: right;">6</td>
+<td>READ ALU_ADD</td>
+<td style="text-align: right;">8</td>
+<td>3 / 5</td>
+<td style="text-align: right;">7</td>
+</tr>
+<tr>
+<td>6</td>
+<td style="text-align: right;">7</td>
+<td>WRITE OUT</td>
+<td style="text-align: right;">8</td>
+<td>3 / 5</td>
+<td style="text-align: right;">8</td>
+</tr>
+</tbody>
+</table>
+<p>4回目の合図で B が 5 になると、加算回路の答えは 8 になります。
+5回目の合図で その8を V に保存し、6回目で LED に渡します。
+WRITE のあとも V の値は残っています。</p>
+<blockquote>
+<p><strong>予想してみよう</strong>：3回目のあとで止めたとき、V と A は同じ値でしょうか？
+表をかくして考え、ラボに <a href="#ch-02_tta8">2章</a> の命令を入れて確かめよう。</p>
+</blockquote>
+<h2 id="⑤-pc-を進める予約とジャンプの予約">⑤ PC を進める予約と、ジャンプの予約</h2>
+<pre><code class="language-verilog">pc &lt;= pc + 8'd1;
+// WRITE JMP の場合は、このあとで
+pc &lt;= v;
+</code></pre>
+<p>同じ <code>always</code> の中で、同じ合図に対して 同じレジスタへ複数の <code>&lt;=</code> を実行すると、
+<strong>あとに実行した代入が採用されます</strong>。だから JMP のときは <code>pc + 1</code> の代わりに V が次のPCになります。
+別々の <code>always</code> から同じレジスタへ書く、という意味ではありません。</p>
+<p>JZ では <code>if (alu_a == 0)</code> が成り立ったときだけ <code>pc &lt;= v</code> を実行します。
+A が 0 でなければ 最初の <code>pc + 1</code> が残り、次へ進みます。
+<code>READ IMM</code> の場合は <code>pc + 2</code> に予約し直して、数が入ったバイトを飛ばします。</p>
+<h2 id="⑥-リセットで32個の変数も-0-にする">⑥ リセットで、32個の変数も 0 にする</h2>
+<pre><code class="language-verilog">integer i;
+// always @(posedge clk) の中
+if (reset) begin
+    pc &lt;= 0; v &lt;= 0; alu_a &lt;= 0; alu_b &lt;= 0; led &lt;= 0;
+    for (i = 0; i &lt; 32; i = i + 1) ram[i] &lt;= 0;
 end
 </code></pre>
+<p><code>for</code> は 0番から31番まで、各箱を指定するための繰り返しです。
+この回路では <strong>1回のクロックの合図で、32個すべてを0にします</strong>。
+CPU が32命令かけて消すプログラムではありません。</p>
+<p>実際のコードは <code>if (reset) ... else if (step) ...</code> なので、リセットを優先します。
+<code>step</code> が 0 でも、リセット中のクロックで初期化されます。
+起動時も再リセット時も変数は0になり、ラボの「さいしょから」と揃います。</p>
+<h2 id="⑦-ボードと-つなぐ">⑦ ボードと つなぐ</h2>
+<p><code>hdl/top_tangnano20k.v</code> は、ボードとCPUを つなぐファイルです。</p>
 <ul>
-<li>READ なら <code>v &lt;= rdata</code>（部品 → V）</li>
-<li>WRITE なら <code>○○ &lt;= v</code>（V → 部品）</li>
-<li><strong>JMP は「PC に 書く」だけ</strong>。JZ は「A が 0 なら PC に 書く」だけ</li>
+<li>電源を入れた直後は リセットする。</li>
+<li>27MHz のクロックを数えて、1秒に1000回だけ <code>step</code> を1にする。</li>
+<li>ボタンの信号を クロックに合わせて受け取る。</li>
+<li>LED は 0で光るので、出力を <code>~led</code> で反転する。</li>
 </ul>
-<p>CPU の 動きが、ほとんど そのまま 書いてあるのが わかりますね。</p>
-<h2 id="⑤-ボードと-つなぐtop_tangnano20kv">⑤ ボードと つなぐ（top_tangnano20k.v）</h2>
-<p><code>hdl/top_tangnano20k.v</code> は、ボードと CPU を つなぐ ファイルです。</p>
-<ul>
-<li>ボードの 時計（<strong>27MHz</strong> ＝ 1秒に 2700万回）を 数えて、<strong>1秒に 1000回</strong> だけ CPU を 進める</li>
-<li>ボタンの 信号を 時計に そろえる</li>
-<li>LED は 0 で 光る 回路なので、反対（<code>~led</code>）に して つなぐ</li>
-</ul>
-<p>どの ピンに つなぐかは <code>hdl/tangnano20k.cst</code> に 書いてあります。</p>
-<h2 id="⑥-チューリング完全って">⑥ チューリング完全って？</h2>
-<p>「<strong>どんな 計算でも（時間と メモリさえ あれば）できる</strong>」ことを <strong>チューリング完全</strong> と いいます。
-スマホの CPU も スーパーコンピューターも チューリング完全です。</p>
-<p>TTA-8 で できることを ならべると……</p>
-<ol>
-<li>変数に 1 を <strong>たす</strong>（ALU_ADD）</li>
-<li>変数から 1 を <strong>ひく</strong>（ALU_SUB）</li>
-<li>変数が <strong>0 か どうかで ジャンプ</strong> する（JZ）</li>
-</ol>
-<p>じつは この 3つが あれば「<strong>カウンター機械（ミンスキー機械）</strong>」という 計算の しくみを 作れて、
-それは チューリング完全だと 数学で 証明されています。
-だから TTA-8 も（メモリが 256バイトまで という 点を のぞけば）<strong>チューリング完全</strong> です。</p>
-<blockquote>
-<p>かけ算も、わり算も、ぜんぶ「たす・ひく・0 で ジャンプ」の くみあわせで 作れます。
-<a href="#ch-06_basic">6章</a> の かけ算 6 × 7 が その 例です。</p>
-</blockquote></section><section class="ch" id="ch-09_ai"><h1 id="9-ai-に-こうやって-たのもう">9. AI に こうやって たのもう</h1>
+<p>ピンの対応は <code>hdl/tangnano20k.cst</code> に書いてあります。
+CPU は27MHzのクロックを受けますが、命令を実行するのは <code>step</code> が1の合図だけです。</p>
+<p>「この回路だけで わり算もできるの？」は <a href="#ch-11_calculation">発展1</a>、
+「箱や番地を増やしたい！」は <a href="#ch-12_expansion">発展2</a> で試して考えます。</p></section><section class="ch" id="ch-09_ai"><h1 id="9-ai-に-こうやって-たのもう">9. AI に こうやって たのもう</h1>
 <p>こまったときは、AI（Claude や ChatGPT、Gemini など）に 聞いてみましょう。
 <strong>じょうずに 聞く コツ</strong> は 3つです。</p>
 <ol>
@@ -1072,7 +1238,307 @@ Tang Nano 20K の ピンは <strong>3.3V</strong> です。5V の 部品を つ�
 </ul>
 <p><img alt="おれたちの ぼうけんは これからだ！" src="img/adventure.svg" /></p>
 <h2 id="ブレッドボードが-あればこのボードの-外がわに-色々な-回路を-付けられる">ブレッドボードが あれば、このボードの 外がわに 色々な 回路を 付けられる。</h2>
-<h1 id="おれたちの-ぼうけん電子工作は-これからだ">おれたちの ぼうけん（電子工作）は これからだ！</h1></section><section class="ch" id="ch-appendix"><h1 id="ふろく">ふろく</h1>
+<h1 id="おれたちの-ぼうけん電子工作は-これからだ">おれたちの ぼうけん（電子工作）は これからだ！</h1></section><section class="ch" id="ch-11_calculation"><h1 id="発展1-addsubnand-で-どこまで計算できる">発展1. ADD・SUB・NAND で どこまで計算できる？</h1>
+<p>ここは 本編を読んでからの寄り道です。<strong>今のTTA-8の回路のまま</strong> 試せます。
+足し算・引き算・NAND に、記憶と条件分岐を組み合わせると、専用の回路がない計算も プログラムで作れます。</p>
+<h2 id="繰り返しは前の命令へ戻ることで作る">繰り返しは、前の命令へ戻ることで作る</h2>
+<p>「残り回数」を変数に入れ、1を引き、0か調べて戻れば、決まった回数の繰り返しです。
+<a href="#ch-07_asm">7章</a> のカウントダウンは、そのままこの仕組みを使っています。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: right;">残り回数</th>
+<th>すること</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">3</td>
+<td>仕事を1回して、残りを2にする</td>
+</tr>
+<tr>
+<td style="text-align: right;">2</td>
+<td>仕事を1回して、残りを1にする</td>
+</tr>
+<tr>
+<td style="text-align: right;">1</td>
+<td>仕事を1回して、残りを0にする</td>
+</tr>
+<tr>
+<td style="text-align: right;">0</td>
+<td>JZ でおわりへ進む</td>
+</tr>
+</tbody>
+</table>
+<p>足し算を繰り返すと かけ算になります。では、わり算は？</p>
+<h2 id="17個を5個ずつの組に分ける">17個を、5個ずつの組に分ける</h2>
+<p>17個のおはじきを、1個ずつ数えて組に入れます。
+5個たまるたびに「できた組」を1増やし、組の中の数を0に戻します。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: right;">数え終わった個数</th>
+<th style="text-align: right;">できた組（商）</th>
+<th style="text-align: right;">今の組に入っている数（余り）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td style="text-align: right;">15</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td style="text-align: right;">17</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">2</td>
+</tr>
+</tbody>
+</table>
+<p>だから <strong>17 ÷ 5 = 3 あまり 2</strong> です。
+「大きい・小さい」を直接調べる命令がなくても、「5と同じになったか」で組を作れます。</p>
+<pre><code class="language-basic">10 REM 17 / 5 : $Q = しょう, $R = あまり, $E = 0でわるエラー
+20 $N = 17 : $D = 5 : $Q = 0 : $R = 0 : $E = 0
+30 IF $D = 0 THEN $E = 1 : GOTO 120
+40 IF $N = 0 THEN GOTO 120
+50 $N = $N - 1
+60 $R = $R + 1
+70 IF $R &lt;&gt; $D THEN GOTO 40
+80 $R = 0
+90 $Q = $Q + 1
+100 GOTO 40
+120 OUT $Q
+130 END
+</code></pre>
+<p>ラボのサンプル <strong>「わり算 17÷5」</strong> を選べます。ファイルは <code>programs/basic/divide.bas</code> です。
+実行すると商の3がLEDに出ます。ラボの変数で <code>$Q = 3</code>、<code>$R = 2</code> を見つけましょう。
+余りをLEDで見たければ、120行を <code>OUT $R</code> に変えます。
+<code>$N</code> は残り個数なので、最後は0になります。</p>
+<p>30行は 0で割る場合を分ける処理です。そのときは計算せず、<code>$E</code> を1にします。
+このプログラムで扱う数は0〜255、割る数は通常1〜255です。</p>
+<blockquote>
+<p><strong>試そう</strong>：20行を変えて、20÷5、3÷5、0÷5、17÷0 を試そう。
+商だけでなく、余りと <code>$E</code> も確認してください。</p>
+</blockquote>
+<p>よく使う「割る数を、引けるだけ引く」方法も作れます。
+ただし8bitの引き算では 3−5 が254に回り込むため、引いた値が0でないだけでは「まだ引ける」と判断できません。
+ここでは比較の仕組みを追加せずに追えるよう、1個ずつ数える方法を選びました。</p>
+<h2 id="nand-から-notandor-を作れる">NAND から NOT・AND・OR を作れる</h2>
+<p>NAND は「AND の答えを反転する」演算です。8bitの各桁で 同じことを行います。
+まず1bitだけを見ます。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: right;">A</th>
+<th style="text-align: right;">B</th>
+<th style="text-align: right;">A AND B</th>
+<th style="text-align: right;">A NAND B</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>作りたい演算</th>
+<th>NAND での作り方</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>NOT A</td>
+<td>A NAND A</td>
+</tr>
+<tr>
+<td>A AND B</td>
+<td>T = A NAND B として、T NAND T</td>
+</tr>
+<tr>
+<td>A OR B</td>
+<td>(A NAND A) NAND (B NAND B)</td>
+</tr>
+</tbody>
+</table>
+<p>たとえば A=12（00001100）、B=10（00001010）なら、AND は8、OR は14です。
+表の中のかっこは説明用です。TinyBASIC改では かっこを使えないので、途中の値を変数に保存します。</p>
+<pre><code class="language-basic">10 $A = 12 : $B = 10
+20 $C = $A NAND $B
+30 $C = $C NAND $C
+40 OUT $C
+50 END
+</code></pre>
+<p>これは NAND だけで AND を作り、8を出す例です。
+途中の値を保持するレジスタやRAMも、計算を組み立てる大事な部品です。</p>
+<h2 id="なんでもは手順と数の範囲を考えて使う">「なんでも」は、手順と数の範囲を考えて使う</h2>
+<p>NAND は、ビットの論理演算を組み立てる基本になります。
+ADD・SUB に記憶・JZ・JMPを組み合わせると、かけ算やわり算のように 手順のある計算を作れます。
+<strong>ADD・SUB・NANDの3回路だけで、記憶や分岐なしに何でもできる、という意味ではありません。</strong></p>
+<p>TTA-8では 数は8bit、変数は32個、プログラムは256バイトです。
+大きな数は何個かの箱に分けて扱えますが、そのための命令と記憶場所も必要になります。
+速さや容量が足りなくなったら、回路やメモリをどう増やすかを 次の発展編で考えましょう。</p></section><section class="ch" id="ch-12_expansion"><h1 id="発展2-cpu-の箱と番地を-大きくするには">発展2. CPU の箱と番地を 大きくするには？</h1>
+<p>ここは <strong>回路を改造するときの設計メモ</strong> です。以下の新しいポートや仕組みは、現行のTTA-8とラボには まだありません。
+そのまま入力して動くサンプルではなく、「どこを変える必要があるか」を考える補題です。</p>
+<h2 id="16bitにしたら何が変わる">16bitにしたら、何が変わる？</h2>
+<p>8bitの数の箱を16bitにすると、0〜65,535を一つの箱に入れられます。
+ただし <code>v</code> の宣言だけを変えても、ほかの8bitの箱へ渡した時点で上位の桁が落ちます。</p>
+<table>
+<thead>
+<tr>
+<th>大きくする部分</th>
+<th>一緒に考えること</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>V、ALU_A、ALU_B、RAMの各要素</td>
+<td>計算結果とデータの通り道も16bitに揃える</td>
+</tr>
+<tr>
+<td>定数の読み込み</td>
+<td>今の IMM は後続1バイト。大きな数を2バイトで読むなら、順序とPCの進み方を決める</td>
+</tr>
+<tr>
+<td>LEDへの出力</td>
+<td>今は下位6bitだけ。16bit化してもLEDが自動で増えるわけではない</td>
+</tr>
+<tr>
+<td>PCとプログラムROM</td>
+<td>データ幅とは別に決める。Vを16bitにしてもプログラム容量は自動では増えない</td>
+</tr>
+<tr>
+<td>アセンブラ、BASIC、ラボ</td>
+<td>数の範囲、命令の長さ、表示、計算結果の扱いを揃える</td>
+</tr>
+</tbody>
+</table>
+<p>命令を8bitのままにして、運ぶデータだけ16bitにする設計もできます。
+IMMを後続2バイトに変える案なら、命令1バイト＋定数2バイトで、次のPCは3進みます。
+既存のプログラムは新しい形式で作り直します。</p>
+<h2 id="外のメモリには番地の箱とデータの窓口を作る">外のメモリには「番地の箱」と「データの窓口」を作る</h2>
+<p>今のRAMは32個で、命令に書いた番号で直接選びます。
+外のメモリをたくさん読み書きするなら、先に <strong>アクセスしたい番地をレジスタに覚えさせる</strong> 方法があります。
+ここでは、この番地を覚える箱をアドレスインデックスレジスタと呼びます。</p>
+<p><img alt="番地を先に覚え、同じ窓口から別の場所を読む" src="img/index_memory.svg" /></p>
+<p>たとえば8bitデータのまま、番地用に8bitの箱を二つ作ります。</p>
+<table>
+<thead>
+<tr>
+<th>新しく作るポートの例</th>
+<th>WRITE</th>
+<th>READ</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MEM_LO</td>
+<td>番地の下位8bitを保存</td>
+<td>下位8bitを読む</td>
+</tr>
+<tr>
+<td>MEM_HI</td>
+<td>番地の上位8bitを保存</td>
+<td>上位8bitを読む</td>
+</tr>
+<tr>
+<td>MEM_DATA</td>
+<td>選んだ番地へデータを書く</td>
+<td>選んだ番地のデータを読む</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-asm">; 改造後の使い方の案（現行版では動きません）
+READ  IMM, 0x12
+WRITE MEM_HI
+READ  IMM, 0x34
+WRITE MEM_LO
+READ  MEM_DATA       ; メモリの 0x1234 番地を V へ
+WRITE $A
+</code></pre>
+<p>16bitの番地なら 65,536か所を選べます。1か所1バイトなら64KiBです。
+命令の7bitアドレスは、この <strong>窓口の番号</strong> を選ぶために使います。
+窓口が少なくても、その先の場所は多く選べるわけです。</p>
+<p>ただし外付けメモリには、信号を出す回路やピン、読み書きのタイミング制御も必要です。
+応答が間に合わないときはCPUを待たせます。その間に同じWRITEを何度も発行しない仕組みも必要です。
+番地を覚える箱だけを追加すれば、メモリがつながるわけではありません。</p>
+<blockquote>
+<p><strong>考えよう</strong>：READのあとに番地を1増やす機能があれば、連続したデータを読むプログラムはどう短くなるでしょう？</p>
+</blockquote>
+<h2 id="入出力も選ぶ窓口と使う窓口に分けられる">入出力も「選ぶ窓口」と「使う窓口」に分けられる</h2>
+<p>同じ考え方で <code>IO_INDEX</code> と <code>IO_DATA</code> を作れます。
+先に <code>IO_INDEX</code> へ装置の番号を書き、<code>IO_DATA</code> でその装置を読み書きします。
+番号を受け取る選択回路が、LED・ブザー・センサーなどへ振り分けます。</p>
+<p>8bitの番号なら256か所、16bitなら65,536か所を選べます。
+<strong>命令に直接書ける128個のポート数を超えて拡張できる</strong> のが利点です。
+容量は番号の幅や接続先の回路で決まり、物理ピンや通信速度にも限りがあります。
+外部の通信回路を使って装置を増やす場合は、その通信手順も作ります。</p>
+<h2 id="プログラムはページ番号とページ内番地で選ぶ">プログラムは、ページ番号とページ内番地で選ぶ</h2>
+<p>今は8bitのPCだけなので、0〜255番地です。
+256バイトを1ページとして、上位に8bitのページ番号を付ければ、256ページを選べます。
+全部で65,536バイト、64KiBのプログラム空間になります。</p>
+<p><img alt="ページ番号とページ内番地を組み合わせて命令を選ぶ" src="img/program_pages.svg" /></p>
+<p>通常の実行では、ページ内番地255の次は、次ページの0番地へ進めます。
+<code>READ IMM</code> がページ末尾に来た場合も、次のページから定数を読み、全体のPCを2進める設計にします。
+ページ255の末尾を超えた場合にどうするかも決めます。</p>
+<p>ジャンプ先の上位と下位を別々に書くなら、<strong>途中で命令を読むページだけが切り替わらないように</strong> します。
+一つの案は「次のジャンプ先ページ」の箱を別に用意することです。</p>
+<pre><code class="language-asm">; 改造後の設計案。NEXT_PAGE は予約するだけ
+READ  IMM, 2
+WRITE NEXT_PAGE
+READ  IMM, 40
+WRITE JMP           ; ここでページ2・番地40へ同時に切り替える
+</code></pre>
+<p>JZなら、条件が成立したときだけページと番地を同時に切り替えます。
+成立しなければ今のページの次の命令へ進みます。
+この案では毎回ジャンプ前にページを指定する約束にし、予約値の取り違えを防ぎます。
+ラベルをこの命令列に翻訳する処理も、アセンブラ側に必要です。</p>
+<p>ページ番号を固定の窓へ切り替える「バンク切り替え」という別案もあります。
+どちらを選んでも、ROM本体・PCの更新・IMM・ジャンプ・ツールを 一緒に設計します。</p>
+<h2 id="改造は一つずつラボと回路を揃える">改造は、一つずつラボと回路を揃える</h2>
+<p>最初の改造には、<a href="#ch-10_next">10章</a> の演算を一つ追加する課題が向いています。
+そのあとで、次のように範囲を広げられます。</p>
+<ol>
+<li>FPGA内部の小さなRAMに インデックスでアクセスする。</li>
+<li>選ぶ番号を増やし、ラボと回路で同じ読み書きになるか確かめる。</li>
+<li>応答を待つ仕組みを作ってから、外付けメモリへ進む。</li>
+<li>プログラムをページ化し、ページ境界のIMMと条件分岐を試す。</li>
+</ol>
+<p>これらの拡張は「今のCPUを理解する」ための必須条件ではありません。
+今ある制限が、どの箱や配線の幅から来ているかを説明できたら、設計を変える入口に立っています。</p></section><section class="ch" id="ch-appendix"><h1 id="ふろく">ふろく</h1>
 <h2 id="a-こまったとき">A. こまったとき</h2>
 <table>
 <thead>
@@ -1147,11 +1613,11 @@ Tang Nano 20K の ピンは <strong>3.3V</strong> です。5V の 部品を つ�
 </tr>
 <tr>
 <td>レジスタ</td>
-<td>CPU の 中の 小さな 箱。TTA-8 では V</td>
+<td>CPU の 中の 小さな 箱。TTA-8 では V・PC・ALU_A・ALU_B など</td>
 </tr>
 <tr>
 <td>PC（プログラムカウンター）</td>
-<td>いま 何番目の 命令かを おぼえる 箱</td>
+<td>実行する命令のバイト番地を おぼえる 箱</td>
 </tr>
 <tr>
 <td>ALU</td>
@@ -1186,8 +1652,16 @@ Tang Nano 20K の ピンは <strong>3.3V</strong> です。5V の 部品を つ�
 <td>Verilog と プログラムから 書きこみ用 ファイルを 作る こと</td>
 </tr>
 <tr>
-<td>チューリング完全</td>
-<td>どんな 計算でも できる こと</td>
+<td>クロック</td>
+<td>レジスタに値を保存するタイミングの基準になる信号</td>
+</tr>
+<tr>
+<td>インデックスレジスタ</td>
+<td>アクセスする場所の番号を覚える箱（発展2の改造案）</td>
+</tr>
+<tr>
+<td>ページ</td>
+<td>大きなプログラム空間を分けたまとまり（発展2では256バイト）</td>
 </tr>
 </tbody>
 </table>
@@ -1203,7 +1677,7 @@ Tang Nano 20K の ピンは <strong>3.3V</strong> です。5V の 部品を つ�
 <tbody>
 <tr>
 <td><code>hdl/tta8.v</code></td>
-<td>CPU 本体（コメント除き 51 行）</td>
+<td>CPU 本体（コメント・空行除き 53 行）</td>
 </tr>
 <tr>
 <td><code>hdl/top_tangnano20k.v</code></td>
@@ -1247,18 +1721,20 @@ Tang Nano 20K の ピンは <strong>3.3V</strong> です。5V の 部品を つ�
 <p>OSS CAD Suite（yosys / nextpnr-himbaechel / apicula）を使います。<code>FPGA_Tool/*/4_build</code> と同じ内容です。</p>
 <pre><code class="language-sh">cd hdl
 yosys -p &quot;scratchpad -set abc9.xaiger 1; read_verilog top_tangnano20k.v tta8.v; synth_gowin -top top_tangnano20k -json build/top.json&quot;
-nextpnr-himbaechel --json build/top.json --write build/pnr.json \
+nextpnr-himbaechel --freq 27 --json build/top.json --write build/pnr.json \
   --device GW2AR-LV18QN88C8/I7 --vopt family=GW2A-18C --vopt cst=tangnano20k.cst
 gowin_pack -d GW2A-18C -o minimal_cpu.fs build/pnr.json
 openFPGALoader -b tangnano20k minimal_cpu.fs        # SRAM
 openFPGALoader -b tangnano20k -f minimal_cpu.fs     # Flash
 </code></pre>
 <p><code>scratchpad -set abc9.xaiger 1</code> は、Windows 版 OSS CAD Suite（2026-09-29）で ABC9 が XAIGER2 の読み込み時にアサーションで落ちる問題の回避策です（旧 XAIGER 経路を使う）。</p>
-<p>使用リソース：LUT4 約 700 / 20,736（3%）、DFF 110。ROM は LUT で構成しています。</p>
+<p>2026-09-30の再ビルド（同梱フラッシャー、RAM初期化あり）では、LUT4 1,269 / 20,736、DFF 342 / 15,552。27MHzのタイミング制約を満たしています。これは配置配線ツールの結果で、実機測定値ではありません。回路やプログラムで使用量は変わります。</p>
 <h3 id="プログラムのコンパイルnodejs">プログラムのコンパイル（Node.js）</h3>
 <pre><code class="language-sh">node tools/tbasic.js programs/basic/flasher.bas   # → .asm / .hex / .lst
 node tools/tta8asm.js programs/flasher.asm        # → .hex / .lst
 node tools/test.js                                # コンパイラのテスト
+node tools/test-lessons.js                        # わり算48ケース・教材例・初期化
+sh tools/test-hdl.sh                              # Verilogの初期化・わり算（iverilog/vvpが必要）
 </code></pre>
 <h3 id="gowin-公式ツールを使う場合">Gowin 公式ツールを使う場合</h3>
 <p>Gowin EDA（Education 版）でも <code>hdl/*.v</code> と <code>hdl/tangnano20k.cst</code> からビルドできます。
@@ -1266,5 +1742,5 @@ node tools/test.js                                # コンパイラのテスト
 戻すときはデバイスマネージャーで該当デバイスのドライバを削除して再接続してください。</p>
 <h3 id="動作確認">動作確認</h3>
 <p>2026-09-29、実機（Tang Nano 20K）で SRAM・Flash 書き込みとも、
-なし／S1／S2／S1+S2 の全モードの動作を確認しています。</p></section></main></div>
+なし／S1／S2／S1+S2 の全モードの動作を確認しています（初版）。RAM初期化を追加した版は、別途実機での確認が必要です。</p></section></main></div>
 </body></html>

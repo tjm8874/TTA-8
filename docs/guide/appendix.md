@@ -22,8 +22,8 @@
 | ビット（bit） | 0 か 1 が 入る 1マス |
 | バイト | 8ビット。0〜255 |
 | 2進数 / 16進数 | 0と1だけの 数 / 0〜9 と A〜F の 数（`0x` を つける） |
-| レジスタ | CPU の 中の 小さな 箱。TTA-8 では V |
-| PC（プログラムカウンター） | いま 何番目の 命令かを おぼえる 箱 |
+| レジスタ | CPU の 中の 小さな 箱。TTA-8 では V・PC・ALU_A・ALU_B など |
+| PC（プログラムカウンター） | 実行する命令のバイト番地を おぼえる 箱 |
 | ALU | 計算を する 係 |
 | アドレス | 部品や メモリの 番号 |
 | ROM / RAM | プログラムを しまう ところ / 変数を しまう ところ |
@@ -32,7 +32,9 @@
 | コンパイル | BASIC などを 機械語に 翻訳する こと |
 | Verilog | 回路を 書く ことば |
 | ビルド | Verilog と プログラムから 書きこみ用 ファイルを 作る こと |
-| チューリング完全 | どんな 計算でも できる こと |
+| クロック | レジスタに値を保存するタイミングの基準になる信号 |
+| インデックスレジスタ | アクセスする場所の番号を覚える箱（発展2の改造案） |
+| ページ | 大きなプログラム空間を分けたまとまり（発展2では256バイト） |
 
 ## C. 大人の方へ（保護者・先生・開発者）
 
@@ -40,7 +42,7 @@
 
 | パス | 内容 |
 |---|---|
-| `hdl/tta8.v` | CPU 本体（コメント除き 51 行） |
+| `hdl/tta8.v` | CPU 本体（コメント・空行除き 53 行） |
 | `hdl/top_tangnano20k.v` | ボード用トップ（27MHz → 1kHz ステップ、ボタン同期、LED 反転） |
 | `hdl/tangnano20k.cst` | ピン割り当て（LED は bit0 = pin 20 … bit5 = pin 15 に反転） |
 | `hdl/program.hex` | ROM 初期値（256 行の 16 進） |
@@ -58,7 +60,7 @@ OSS CAD Suite（yosys / nextpnr-himbaechel / apicula）を使います。`FPGA_T
 ```sh
 cd hdl
 yosys -p "scratchpad -set abc9.xaiger 1; read_verilog top_tangnano20k.v tta8.v; synth_gowin -top top_tangnano20k -json build/top.json"
-nextpnr-himbaechel --json build/top.json --write build/pnr.json \
+nextpnr-himbaechel --freq 27 --json build/top.json --write build/pnr.json \
   --device GW2AR-LV18QN88C8/I7 --vopt family=GW2A-18C --vopt cst=tangnano20k.cst
 gowin_pack -d GW2A-18C -o minimal_cpu.fs build/pnr.json
 openFPGALoader -b tangnano20k minimal_cpu.fs        # SRAM
@@ -67,7 +69,7 @@ openFPGALoader -b tangnano20k -f minimal_cpu.fs     # Flash
 
 `scratchpad -set abc9.xaiger 1` は、Windows 版 OSS CAD Suite（2026-09-29）で ABC9 が XAIGER2 の読み込み時にアサーションで落ちる問題の回避策です（旧 XAIGER 経路を使う）。
 
-使用リソース：LUT4 約 700 / 20,736（3%）、DFF 110。ROM は LUT で構成しています。
+2026-09-30の再ビルド（同梱フラッシャー、RAM初期化あり）では、LUT4 1,269 / 20,736、DFF 342 / 15,552。27MHzのタイミング制約を満たしています。これは配置配線ツールの結果で、実機測定値ではありません。回路やプログラムで使用量は変わります。
 
 ### プログラムのコンパイル（Node.js）
 
@@ -75,6 +77,8 @@ openFPGALoader -b tangnano20k -f minimal_cpu.fs     # Flash
 node tools/tbasic.js programs/basic/flasher.bas   # → .asm / .hex / .lst
 node tools/tta8asm.js programs/flasher.asm        # → .hex / .lst
 node tools/test.js                                # コンパイラのテスト
+node tools/test-lessons.js                        # わり算48ケース・教材例・初期化
+sh tools/test-hdl.sh                              # Verilogの初期化・わり算（iverilog/vvpが必要）
 ```
 
 ### Gowin 公式ツールを使う場合
@@ -86,7 +90,7 @@ Gowin EDA（Education 版）でも `hdl/*.v` と `hdl/tangnano20k.cst` からビ
 ### 動作確認
 
 2026-09-29、実機（Tang Nano 20K）で SRAM・Flash 書き込みとも、
-なし／S1／S2／S1+S2 の全モードの動作を確認しています。
+なし／S1／S2／S1+S2 の全モードの動作を確認しています（初版）。RAM初期化を追加した版は、別途実機での確認が必要です。
 
 ---
-[← 10. つぎの ぼうけんへ](10_next.md)　|　[もくじ](README.md)
+[← 発展2. CPU を大きくする](12_expansion.md)　|　[もくじ](README.md)

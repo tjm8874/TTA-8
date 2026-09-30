@@ -20,7 +20,7 @@ source "$SUITE/environment"
 export PYTHONWARNINGS=ignore
 cd "$HDL" && mkdir -p build
 echo "[1/3] yosys" && yosys -q -l build/yosys.log -p "scratchpad -set abc9.xaiger 1; read_verilog top_tangnano20k.v tta8.v; synth_gowin -top top_tangnano20k -json build/top.json" &&
-echo "[2/3] nextpnr" && nextpnr-himbaechel -q -l build/nextpnr.log --json build/top.json --write build/pnr.json --device GW2AR-LV18QN88C8/I7 --vopt family=GW2A-18C --vopt cst=tangnano20k.cst &&
+echo "[2/3] nextpnr" && nextpnr-himbaechel --freq 27 -q -l build/nextpnr.log --json build/top.json --write build/pnr.json --device GW2AR-LV18QN88C8/I7 --vopt family=GW2A-18C --vopt cst=tangnano20k.cst &&
 echo "[3/3] gowin_pack" && gowin_pack -d GW2A-18C -o minimal_cpu.fs build/pnr.json
 if [ $? -eq 0 ]; then
   echo ""; echo " *** できた！ hdl/minimal_cpu.fs  つぎは 2_write_sram.sh ***"

@@ -34,6 +34,7 @@ module tta8 (
     // ---- まわりの部品 ---------------------------------------
     reg  [7:0] alu_a, alu_b;     // ALU に入れる数 (ALU_A, ALU_B)
     reg  [7:0] ram [0:31];       // 変数 $A-$Z, $0-$5 (0x20-0x3F)
+    integer i;                  // リセットで RAM の箱を順に指定する番号
     wire       is_ram = (addr[6:5] == 2'b01);
 
     // ---- READ : アドレスごとに何が読めるか -------------------
@@ -55,6 +56,7 @@ module tta8 (
     always @(posedge clk) begin
         if (reset) begin
             pc <= 0;  v <= 0;  alu_a <= 0;  alu_b <= 0;  led <= 0;
+            for (i = 0; i < 32; i = i + 1) ram[i] <= 0;
         end else if (step) begin
             pc <= pc + 8'd1;                          // ふつうは次へ
             if (!write) begin                         // ===== READ

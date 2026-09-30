@@ -211,7 +211,7 @@ SCENES.readwrite = {
   },
 };
 
-// ---- 51 行 --------------------------------------------------------------
+// ---- CPU の行数 --------------------------------------------------------------
 SCENES.code51 = {
   dur: 9, init() {
     bgGrad();
@@ -228,7 +228,7 @@ SCENES.code51 = {
     el('text', { x: 960, y: 1030, 'text-anchor': 'middle', 'font-size': 32, 'font-weight': 700, fill: C.soft }, S, '(コメントと 空行を のぞく)');
   },
   render(t) {
-    const k = Math.min(51, Math.floor(t / 7 * 51));
+    const k = Math.min(this.lines.length, Math.floor(t / 7 * this.lines.length));
     const scroll = Math.max(0, (k - 17) * 44);
     this.g.setAttribute('transform', `translate(0,${-scroll})`);
     this.items.forEach((e, i) => e.setAttribute('fill', i < k ? '#ECEEFB' : '#3D4166'));

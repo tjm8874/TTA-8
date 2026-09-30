@@ -12,7 +12,7 @@ from markdown.extensions.toc import TocExtension, slugify_unicode
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 G = ROOT / 'docs' / 'guide'
 CHAPTERS = ['README', '01_cpu', '02_tta8', '03_setup', '04_run', '05_lab', '06_basic',
-            '07_asm', '08_verilog', '09_ai', '10_next', 'appendix']
+            '07_asm', '08_verilog', '09_ai', '10_next', '11_calculation', '12_expansion', 'appendix']
 TITLE = 'TTA-8 せつめい書'
 
 
@@ -65,11 +65,15 @@ hr { border:none; border-top:1px dashed var(--line); margin:24px 0; }
 .cover { text-align:center; }
 @media (max-width: 820px) { .wrap { grid-template-columns: 1fr; } nav.toc { position:static; max-height:none; } main section.ch { padding:18px 16px; } }
 @media print {
-  body { background:#fff; font-size:11pt; } header.top, nav.toc { display:none; }
+  body { background:#fff; font-size:11pt; line-height:1.65; } header.top, nav.toc { display:none; }
   .wrap { display:block; padding:0; max-width:none; }
   main section.ch { border:none; border-radius:0; padding:0; margin:0; break-before:page; }
   main section.ch:first-child { break-before:auto; }
   pre, table, img, blockquote { break-inside:avoid; } h2, h3 { break-after:avoid; }
+  pre { white-space:pre-wrap; overflow-wrap:anywhere; }
+  table { display:table; table-layout:auto; break-inside:avoid; }
+  th, td { overflow-wrap:anywhere; }
+  tr { break-inside:avoid; }
   a { color:inherit; text-decoration:none; }
 }
 @page { size:A4; margin:16mm 14mm; }

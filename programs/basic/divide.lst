@@ -1,0 +1,63 @@
+00: 12 11   READ  IMM, 17
+02: AD      WRITE $N
+03: 12 05   READ  IMM, 5
+05: A3      WRITE $D
+06: 12 00   READ  IMM, 0
+08: B0      WRITE $Q
+09: 12 00   READ  IMM, 0
+0B: B1      WRITE $R
+0C: 12 00   READ  IMM, 0
+0E: A4      WRITE $E
+0F: 23      READ  $D
+10: 80      WRITE ALU_A
+11: 12 17   READ  IMM, _T2
+13: 91      WRITE JZ              ; おなじなら THEN へ
+14: 12 1D   READ  IMM, _S1
+16: 90      WRITE JMP             ; ちがうから とばす
+17: 12 01   READ  IMM, 1
+19: A4      WRITE $E
+1A: 12 49   READ  IMM, L120
+1C: 90      WRITE JMP
+1D: 2D      READ  $N
+1E: 80      WRITE ALU_A
+1F: 12 49   READ  IMM, L120
+21: 91      WRITE JZ              ; おなじなら ジャンプ
+22: 2D      READ  $N
+23: 80      WRITE ALU_A
+24: 12 01   READ  IMM, 1
+26: 81      WRITE ALU_B
+27: 04      READ  ALU_SUB
+28: AD      WRITE $N
+29: 31      READ  $R
+2A: 80      WRITE ALU_A
+2B: 12 01   READ  IMM, 1
+2D: 81      WRITE ALU_B
+2E: 02      READ  ALU_ADD
+2F: B1      WRITE $R
+30: 31      READ  $R
+31: 80      WRITE ALU_A
+32: 23      READ  $D
+33: 81      WRITE ALU_B
+34: 04      READ  ALU_SUB
+35: 80      WRITE ALU_A           ; ALU_A = 左 - 右
+36: 12 3C   READ  IMM, _S3
+38: 91      WRITE JZ              ; おなじなら とばす
+39: 12 1D   READ  IMM, L40
+3B: 90      WRITE JMP             ; ちがうから ジャンプ
+3C: 12 00   READ  IMM, 0
+3E: B1      WRITE $R
+3F: 30      READ  $Q
+40: 80      WRITE ALU_A
+41: 12 01   READ  IMM, 1
+43: 81      WRITE ALU_B
+44: 02      READ  ALU_ADD
+45: B0      WRITE $Q
+46: 12 1D   READ  IMM, L40
+48: 90      WRITE JMP
+49: 30      READ  $Q
+4A: FF      WRITE OUT
+4B: 12 4B   READ  IMM, _H4
+4D: 90      WRITE JMP             ; おわり (ここで足ぶみ)
+4E: 12 4E   READ  IMM, _END
+50: 90      WRITE JMP             ; おわり (ここで足ぶみ)
+; size = 81 bytes

@@ -98,3 +98,5 @@ WRITE $C        ; $C = V
 | add.bas | 3 + 5 を LED に出す | 20 バイト |
 | count.bas | LED で 2進数カウンター | 34 バイト |
 | multiply.bas | 6 × 7 をたし算のくりかえしで（答え 42 = 101010） | 38 バイト |
+
+わり算のサンプル `programs/basic/divide.bas` と解説は [発展1](guide/11_calculation.md) を参照。
