@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 300" font-family="'M PLUS Rounded 1c','Hiragino Maru Gothic ProN','Yu Gothic','Noto Sans CJK JP',sans-serif">
+  <rect width="900" height="300" rx="18" fill="#F4F6FD"/>
+  <text x="450" y="36" text-anchor="middle" font-size="20" font-weight="800" fill="#3E4466">プログラムが ボードで 動くまで</text>
+  <defs><marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#9AA0B8"/></marker></defs>
+  <g font-weight="800" text-anchor="middle">
+    <rect x="20" y="70" width="140" height="84" rx="14" fill="#E64D8C"/>
+    <text x="90" y="106" fill="#fff" font-size="18">BASIC</text><text x="90" y="132" fill="#fff" font-size="13">flasher.bas</text>
+    <rect x="200" y="70" width="140" height="84" rx="14" fill="#4C97FF"/>
+    <text x="270" y="106" fill="#fff" font-size="18">アセンブリ</text><text x="270" y="132" fill="#fff" font-size="13">READ / WRITE</text>
+    <rect x="380" y="70" width="140" height="84" rx="14" fill="#CF63CF"/>
+    <text x="450" y="106" fill="#fff" font-size="18">機械語</text><text x="450" y="132" fill="#fff" font-size="13">program.hex</text>
+    <rect x="560" y="70" width="140" height="84" rx="14" fill="#59C059"/>
+    <text x="630" y="106" fill="#fff" font-size="18">回路データ</text><text x="630" y="132" fill="#fff" font-size="13">minimal_cpu.fs</text>
+    <rect x="740" y="70" width="140" height="84" rx="14" fill="#1D1F24"/>
+    <text x="810" y="106" fill="#FFB020" font-size="18">Tang Nano</text><text x="810" y="132" fill="#fff" font-size="13">LED が光る！</text>
+  </g>
+  <g stroke="#9AA0B8" stroke-width="4" marker-end="url(#a)">
+    <line x1="162" y1="112" x2="196" y2="112"/><line x1="342" y1="112" x2="376" y2="112"/>
+    <line x1="522" y1="112" x2="556" y2="112"/><line x1="702" y1="112" x2="736" y2="112"/>
+  </g>
+  <g font-size="13" font-weight="700" fill="#3E4466" text-anchor="middle">
+    <text x="180" y="185">くみたてる</text><text x="360" y="185">くみたてる</text>
+    <text x="540" y="185">4_build</text><text x="720" y="185">2_write</text>
+    <text x="540" y="203" font-size="11" fill="#7C82A3">+ CPU の Verilog</text>
+  </g>
+  <rect x="20" y="222" width="500" height="58" rx="12" fill="#fff" stroke="#855CD6" stroke-width="3"/>
+  <text x="270" y="249" text-anchor="middle" font-size="15" font-weight="800" fill="#855CD6">ここまでは ブラウザの「TTA-8 ラボ」で できる</text>
+  <text x="270" y="270" text-anchor="middle" font-size="12" font-weight="700" fill="#7C82A3">「ボード用に保存」で program.hex が 手に入る</text>
+  <rect x="560" y="222" width="320" height="58" rx="12" fill="#fff" stroke="#59C059" stroke-width="3"/>
+  <text x="720" y="249" text-anchor="middle" font-size="15" font-weight="800" fill="#2E8B37">ここは FPGA_Tool で</text>
+  <text x="720" y="270" text-anchor="middle" font-size="12" font-weight="700" fill="#7C82A3">ダブルクリックで OK</text>
+</svg>

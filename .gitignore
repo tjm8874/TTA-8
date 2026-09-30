@@ -1,0 +1,12 @@
+# ビルドで できるもの
+hdl/build/
+# ビルド道具 (4_build が ダウンロードする)
+FPGA_Tool/oss-cad-suite/
+FPGA_Tool/oss-cad-suite.tgz
+# 作業用
+_to_delete/
+tools/video/_anim_built.html
+# 公開しない メモ・資料
+Initial.txt
+gemini_initial.pdf
+tang_nano_20k_pinlabel.png

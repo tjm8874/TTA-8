@@ -1,0 +1,31 @@
+10 REM ===== LED フラッシャー (TinyBASIC改) =====
+20 REM なにも押さない: 右はしが点滅 / S1: 右から左へ
+30 REM S2: 外から内へ / S1+S2: 交互に点滅
+100 $M = IN
+110 IF $M = 1 THEN GOTO 300
+120 IF $M = 2 THEN GOTO 400
+130 IF $M = 3 THEN GOTO 500
+200 REM ----- なにも押していない -----
+210 $L = 0b000001 : GOSUB 900
+220 $L = 0b000000 : GOSUB 900
+230 GOTO 100
+300 REM ----- S1 : 右から左へ (2倍ずつ) -----
+310 $L = 1
+320 GOSUB 900
+330 $L = $L + $L
+340 IF $L <> 64 THEN GOTO 320
+350 GOTO 100
+400 REM ----- S2 : 外から内へ -----
+410 $L = 0b100001 : GOSUB 900
+420 $L = 0b010010 : GOSUB 900
+430 $L = 0b001100 : GOSUB 900
+440 GOTO 100
+500 REM ----- S1 + S2 : 交互に点滅 -----
+510 $L = 0b101010 : GOSUB 900
+520 $L = 0b010101 : GOSUB 900
+530 GOTO 100
+900 REM ----- $L を光らせて 0.5秒 待つ -----
+910 OUT $L
+920 WAIT 50
+930 IF IN <> $M THEN GOTO 100
+940 RETURN

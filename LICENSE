@@ -1,0 +1,20 @@
+CC0 1.0 Universal (Public Domain Dedication)
+
+TTA-8 (Minimal_CPU) — このリポジトリの 作品 (Verilog、ツール、デバッガ、
+せつめい書、動画素材 など) は、法律上 可能な かぎり すべての 著作権と
+関連する 権利を 放棄し、パブリックドメインに 提供します。
+だれでも、許可なく、自由に コピー・改造・配布・商用利用できます。
+クレジット表記も 不要です。
+
+To the extent possible under law, the authors have waived all copyright and
+related or neighboring rights to this work. This work is published from Japan.
+Full legal text: https://creativecommons.org/publicdomain/zero/1.0/legalcode
+
+----------------------------------------------------------------------
+同梱している 他の人の ソフトウェア (上の CC0 の 対象外。それぞれの ライセンスに 従います)
+Third-party software bundled in FPGA_Tool/Windows (NOT covered by CC0):
+
+- openFPGALoader (Apache License 2.0)       FPGA_Tool/Windows/openFPGALoader/license/
+- libusb (LGPL-2.1), libftdi (LGPL-2.1), hidapi, zlib, GCC runtime (GPL + runtime exception)
+  … taken from the OSS CAD Suite Windows build (YosysHQ)
+- Zadig 2.9 (GPL-3.0) https://github.com/pbatard/libwdi

@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 420" font-family="'M PLUS Rounded 1c','Hiragino Maru Gothic ProN','Yu Gothic','Noto Sans CJK JP',sans-serif">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6B45BF"/><stop offset="1" stop-color="#E64D8C"/></linearGradient>
+    <pattern id="holes" width="16" height="16" patternUnits="userSpaceOnUse"><rect x="5" y="5" width="6" height="6" rx="1" fill="#C9CBD3"/></pattern>
+  </defs>
+  <rect width="900" height="420" rx="22" fill="url(#sky)"/>
+  <!-- rays -->
+  <g opacity=".13" fill="#fff"><path d="M450 420 L0 0 H90z"/><path d="M450 420 L220 0 H320z"/><path d="M450 420 L560 0 H660z"/><path d="M450 420 L820 0 H900 V60z"/></g>
+  <!-- breadboard -->
+  <rect x="120" y="170" width="660" height="200" rx="14" fill="#F4F4F0"/>
+  <rect x="136" y="186" width="628" height="168" fill="url(#holes)"/>
+  <rect x="136" y="258" width="628" height="12" fill="#E3E3DC"/>
+  <line x1="136" y1="190" x2="764" y2="190" stroke="#E64D8C" stroke-width="2"/>
+  <line x1="136" y1="350" x2="764" y2="350" stroke="#4C97FF" stroke-width="2"/>
+  <!-- tang nano -->
+  <rect x="160" y="222" width="230" height="84" rx="10" fill="#1D1F24"/>
+  <rect x="140" y="248" width="34" height="32" rx="5" fill="#B9BCC6"/>
+  <rect x="220" y="236" width="50" height="50" rx="4" fill="#2E3038"/>
+  <text x="330" y="244" text-anchor="middle" font-size="11" font-weight="800" fill="#E6E6EA">TANG NANO 20K</text>
+  <g fill="#FFB020"><rect x="284" y="288" width="8" height="6" rx="1"/><rect x="298" y="288" width="8" height="6" rx="1"/><rect x="312" y="288" width="8" height="6" rx="1"/></g>
+  <text x="245" y="266" text-anchor="middle" font-size="9" fill="#B7BAC6">TTA-8</text>
+  <!-- wires & parts -->
+  <g fill="none" stroke-width="5" stroke-linecap="round">
+    <path d="M392 236 C 440 236, 440 214, 470 214" stroke="#FF8C1A"/>
+    <path d="M392 262 C 470 262, 520 240, 560 240" stroke="#59C059"/>
+    <path d="M392 290 C 520 300, 620 300, 660 290" stroke="#4C97FF"/>
+  </g>
+  <!-- LED -->
+  <circle cx="480" cy="204" r="16" fill="#FF3B3B"/><circle cx="480" cy="204" r="28" fill="#FF3B3B" opacity=".25"/>
+  <text x="480" y="162" text-anchor="middle" font-size="14" font-weight="800" fill="#fff">LED</text>
+  <!-- buzzer -->
+  <circle cx="575" cy="236" r="20" fill="#2E3038"/><circle cx="575" cy="236" r="5" fill="#8D909B"/>
+  <path d="M602 220 q10 16 0 32 M612 212 q16 24 0 48" stroke="#3E4466" stroke-width="3" fill="none"/>
+  <text x="575" y="206" text-anchor="middle" font-size="14" font-weight="800" fill="#3E4466">ブザー</text>
+  <!-- servo -->
+  <rect x="650" y="262" width="60" height="36" rx="5" fill="#4C97FF"/>
+  <rect x="690" y="248" width="44" height="10" rx="5" fill="#8D909B"/>
+  <text x="712" y="240" text-anchor="middle" font-size="14" font-weight="800" fill="#3E4466">モーター</text>
+  <!-- sensor -->
+  <rect x="690" y="312" width="40" height="28" rx="4" fill="#59C059"/><circle cx="702" cy="326" r="6" fill="#fff"/><circle cx="718" cy="326" r="6" fill="#fff"/>
+  <text x="680" y="332" text-anchor="end" font-size="14" font-weight="800" fill="#3E4466">センサー</text>
+  <text x="450" y="62" text-anchor="middle" font-size="30" font-weight="800" fill="#fff">おれたちの ぼうけんは これからだ！</text>
+  <text x="450" y="100" text-anchor="middle" font-size="16" font-weight="700" fill="#FFE6F2">ブレッドボードで ボードの外に 回路を つなげよう</text>
+  <text x="450" y="400" text-anchor="middle" font-size="13" font-weight="700" fill="#FFE6F2">TTA-8 のつづきは キミが つくる</text>
+</svg>

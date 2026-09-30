@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 360" font-family="'M PLUS Rounded 1c','Hiragino Maru Gothic ProN','Yu Gothic','Noto Sans CJK JP',sans-serif">
+  <rect width="760" height="360" rx="18" fill="#F4F6FD"/>
+  <text x="380" y="38" text-anchor="middle" font-size="21" font-weight="800" fill="#3E4466">V は 数を 1つだけ 運べる「はこびや」さん</text>
+  <!-- parts -->
+  <g font-weight="800" font-size="17" text-anchor="middle">
+    <rect x="40"  y="70" width="130" height="70" rx="14" fill="#fff" stroke="#59C059" stroke-width="4"/>
+    <text x="105" y="102" fill="#59C059">ALU_A / B</text><text x="105" y="126" font-size="13" fill="#7C82A3" font-weight="700">けいさん係</text>
+    <rect x="200" y="70" width="130" height="70" rx="14" fill="#fff" stroke="#FFAB19" stroke-width="4"/>
+    <text x="265" y="102" fill="#FFAB19">JMP / JZ</text><text x="265" y="126" font-size="13" fill="#7C82A3" font-weight="700">ジャンプ係</text>
+    <rect x="360" y="70" width="130" height="70" rx="14" fill="#fff" stroke="#FF8C1A" stroke-width="4"/>
+    <text x="425" y="102" fill="#FF8C1A">$A 〜 $5</text><text x="425" y="126" font-size="13" fill="#7C82A3" font-weight="700">変数 32こ</text>
+    <rect x="520" y="70" width="95" height="70" rx="14" fill="#fff" stroke="#5CB1D6" stroke-width="4"/>
+    <text x="567" y="102" fill="#5CB1D6">IN</text><text x="567" y="126" font-size="13" fill="#7C82A3" font-weight="700">ボタン</text>
+    <rect x="635" y="70" width="95" height="70" rx="14" fill="#fff" stroke="#9966FF" stroke-width="4"/>
+    <text x="682" y="102" fill="#9966FF">OUT</text><text x="682" y="126" font-size="13" fill="#7C82A3" font-weight="700">LED</text>
+  </g>
+  <!-- bus -->
+  <g stroke="#C9CFE8" stroke-width="8">
+    <line x1="105" y1="140" x2="105" y2="190"/><line x1="265" y1="140" x2="265" y2="190"/><line x1="425" y1="140" x2="425" y2="190"/>
+    <line x1="567" y1="140" x2="567" y2="190"/><line x1="682" y1="140" x2="682" y2="190"/><line x1="380" y1="190" x2="380" y2="240"/>
+  </g>
+  <rect x="40" y="184" width="690" height="14" rx="7" fill="#C9CFE8"/>
+  <text x="730" y="218" text-anchor="end" font-size="13" fill="#7C82A3" font-weight="700">バス (データの 通り道)</text>
+  <!-- V -->
+  <rect x="300" y="240" width="160" height="80" rx="16" fill="#fff" stroke="#FF6680" stroke-width="5"/>
+  <text x="380" y="276" text-anchor="middle" font-size="22" font-weight="800" fill="#FF6680">V</text>
+  <text x="380" y="304" text-anchor="middle" font-size="13" font-weight="700" fill="#7C82A3">レジスタ (はこびや)</text>
+  <!-- arrows -->
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="context-stroke"/></marker>
+  </defs>
+  <path d="M250 300 C 180 300, 130 260, 120 205" fill="none" stroke="#4C97FF" stroke-width="4" marker-end="url(#a)"/>
+  <text x="70" y="300" font-size="17" font-weight="800" fill="#4C97FF">WRITE (かく)</text>
+  <text x="70" y="322" font-size="13" font-weight="700" fill="#7C82A3">V → 部品へ</text>
+  <path d="M567 205 C 567 260, 530 285, 468 285" fill="none" stroke="#FF6680" stroke-width="4" marker-end="url(#a)"/>
+  <text x="585" y="276" font-size="17" font-weight="800" fill="#FF6680">READ (よむ)</text>
+  <text x="585" y="298" font-size="13" font-weight="700" fill="#7C82A3">部品 → V へ</text>
+</svg>

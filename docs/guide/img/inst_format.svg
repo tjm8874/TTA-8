@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 330" font-family="'M PLUS Rounded 1c','Hiragino Maru Gothic ProN','Yu Gothic','Noto Sans CJK JP',sans-serif">
+  <rect width="760" height="330" rx="18" fill="#F4F6FD"/>
+  <text x="380" y="40" text-anchor="middle" font-size="22" font-weight="800" fill="#3E4466">TTA-8 の 命令は 1バイト (8bit)</text>
+  <!-- bit numbers -->
+  <g font-size="14" fill="#7C82A3" text-anchor="middle">
+    <text x="115" y="78">bit7</text><text x="195" y="78">6</text><text x="265" y="78">5</text><text x="335" y="78">4</text>
+    <text x="405" y="78">3</text><text x="475" y="78">2</text><text x="545" y="78">1</text><text x="615" y="78">0</text>
+  </g>
+  <!-- boxes -->
+  <rect x="80" y="88" width="70" height="64" rx="10" fill="#FF6680"/>
+  <g fill="#4C97FF">
+    <rect x="160" y="88" width="70" height="64" rx="10"/><rect x="230" y="88" width="70" height="64" rx="0" opacity=".92"/>
+    <rect x="300" y="88" width="70" height="64" opacity=".84"/><rect x="370" y="88" width="70" height="64" opacity=".92"/>
+    <rect x="440" y="88" width="70" height="64" opacity=".84"/><rect x="510" y="88" width="70" height="64" opacity=".92"/>
+    <rect x="580" y="88" width="70" height="64" rx="10" opacity=".84"/>
+  </g>
+  <g font-size="30" font-weight="800" fill="#fff" text-anchor="middle">
+    <text x="115" y="131">R/W</text>
+    <text x="405" y="131" font-size="24">アドレス (0〜127)</text>
+  </g>
+  <!-- legend -->
+  <g font-size="17" fill="#3E4466">
+    <rect x="80" y="172" width="18" height="18" rx="4" fill="#FF6680"/>
+    <text x="106" y="187"><tspan font-weight="800">0 = READ (よむ)</tspan> : アドレスの 値を V へ</text>
+    <text x="106" y="213"><tspan font-weight="800">1 = WRITE (かく)</tspan> : V の 値を アドレスへ</text>
+    <rect x="440" y="172" width="18" height="18" rx="4" fill="#4C97FF"/>
+    <text x="466" y="187" font-weight="800">どの 部品と やりとりするか</text>
+    <text x="466" y="213">ALU_A, JMP, OUT, $A … など</text>
+  </g>
+  <!-- examples -->
+  <g font-size="17" fill="#3E4466">
+    <rect x="80" y="236" width="600" height="78" rx="12" fill="#fff" stroke="#D5DAEE"/>
+    <text x="100" y="266" font-family="ui-monospace,Menlo,Consolas,monospace" font-weight="700">0 1111110 = 0x7E</text>
+    <text x="330" y="266">→ READ IN  (ボタンを よむ)</text>
+    <text x="100" y="298" font-family="ui-monospace,Menlo,Consolas,monospace" font-weight="700">1 1111111 = 0xFF</text>
+    <text x="330" y="298">→ WRITE OUT (LED に かく)</text>
+  </g>
+</svg>

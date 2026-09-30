@@ -1,0 +1,1270 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TTA-8 せつめい書</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;800&display=swap">
+<style>
+:root { --bg:#E9EEFB; --panel:#fff; --panel-2:#F4F6FD; --line:#D5DAEE; --ink:#3E4466; --ink-soft:#7C82A3;
+  --top:#855CD6; --accent:#E64D8C; --code:#F4F6FD; --f:"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Yu Gothic","Noto Sans CJK JP",system-ui,sans-serif; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#1B1D2C; --panel:#262940; --panel-2:#2E3150; --line:#3D4166; --ink:#ECEEFB; --ink-soft:#A6ABCD; --top:#6B45BF; --code:#1F2236; } }
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+section.ch, h2, h3 { scroll-margin-top: 80px; }
+body { margin:0; background:var(--bg); color:var(--ink); font-family:var(--f); line-height:1.85; font-size:16px; }
+header.top { background:var(--top); color:#fff; padding:14px 20px; display:flex; align-items:center; gap:12px; position:sticky; top:0; z-index:5; }
+header.top b { font-size:20px; letter-spacing:.02em; }
+header.top span { opacity:.85; font-size:13px; }
+.wrap { display:grid; grid-template-columns: 260px minmax(0,1fr); gap:24px; max-width:1180px; margin:0 auto; padding:24px 16px 80px; }
+nav.toc { position:sticky; top:76px; align-self:start; background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:14px 10px; max-height:calc(100vh - 100px); overflow:auto; }
+nav.toc a { display:block; padding:6px 10px; border-radius:10px; color:var(--ink); text-decoration:none; font-weight:700; font-size:14px; }
+nav.toc a:hover { background:var(--panel-2); }
+main section.ch { background:var(--panel); border:1px solid var(--line); border-radius:20px; padding:24px 32px; margin-bottom:24px; }
+h1 { font-size:28px; margin:0 0 12px; padding-bottom:10px; border-bottom:4px solid var(--top); }
+h2 { font-size:22px; margin:32px 0 10px; padding-left:12px; border-left:8px solid var(--accent); }
+h3 { font-size:18px; margin:24px 0 8px; }
+a { color:#4C97FF; }
+img { max-width:100%; height:auto; border-radius:12px; }
+table { border-collapse:collapse; width:100%; margin:12px 0; font-size:15px; display:block; overflow-x:auto; }
+th, td { border:1px solid var(--line); padding:6px 10px; vertical-align:top; }
+th { background:var(--panel-2); }
+code { font-family: ui-monospace, Menlo, Consolas, "Noto Sans Mono CJK JP", monospace; background:var(--code); padding:1px 5px; border-radius:6px; font-size:.92em; }
+pre { background:var(--code); border:1px solid var(--line); border-radius:12px; padding:12px 16px; overflow-x:auto; line-height:1.55; }
+pre code { background:none; padding:0; }
+blockquote { margin:14px 0; padding:10px 16px; background:var(--panel-2); border-left:6px solid #FFBF00; border-radius:10px; }
+blockquote p { margin:0; }
+hr { border:none; border-top:1px dashed var(--line); margin:24px 0; }
+.cover { text-align:center; }
+@media (max-width: 820px) { .wrap { grid-template-columns: 1fr; } nav.toc { position:static; max-height:none; } main section.ch { padding:18px 16px; } }
+@media print {
+  body { background:#fff; font-size:11pt; } header.top, nav.toc { display:none; }
+  .wrap { display:block; padding:0; max-width:none; }
+  main section.ch { border:none; border-radius:0; padding:0; margin:0; break-before:page; }
+  main section.ch:first-child { break-before:auto; }
+  pre, table, img, blockquote { break-inside:avoid; } h2, h3 { break-after:avoid; }
+  a { color:inherit; text-decoration:none; }
+}
+@page { size:A4; margin:16mm 14mm; }
+</style></head>
+<body>
+<header class="top"><b>TTA-8</b><span>READ と WRITE だけの 8bit CPU ― せつめい書</span></header>
+<div class="wrap"><nav class="toc"><a href="#ch-README">はじめに・もくじ</a><a href="#ch-01_cpu">1. CPU って なんだろう？</a><a href="#ch-02_tta8">2. TTA-8 の しくみ</a><a href="#ch-03_setup">3. じゅんびしよう</a><a href="#ch-04_run">4. 動かしてみよう</a><a href="#ch-05_lab">5. TTA-8 ラボで 中を のぞこう</a><a href="#ch-06_basic">6. TinyBASIC改 で プログラムを 書こう</a><a href="#ch-07_asm">7. アセンブリで 書いてみよう</a><a href="#ch-08_verilog">8. CPU の 設計図を 読もう</a><a href="#ch-09_ai">9. AI に こうやって たのもう</a><a href="#ch-10_next">10. つぎの ぼうけんへ</a><a href="#ch-appendix">ふろく</a></nav><main><section class="ch" id="ch-README"><h1 id="tta-8-せつめい書-8bit-の-小さい-cpu-を-作って-動かそう">TTA-8 せつめい書 ― 8bit の 小さい CPU を 作って 動かそう</h1>
+<p><img src="img/flasher.gif" width="480" alt="Tang Nano 20K の LED が ボタンで 光りかたを 変える"></p>
+<p>この せつめい書では、<strong>命令が 2つ (READ と WRITE) しかない 8bit CPU「TTA-8」</strong> を、
+FPGA ボード <strong>Tang Nano 20K</strong> の 中に 作って 動かします。
+小学校 高学年くらいから 読めるように 書いてあります。</p>
+<h2 id="もくじ">もくじ</h2>
+<table>
+<thead>
+<tr>
+<th>章</th>
+<th>内容</th>
+<th>こんな人に</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="#ch-01_cpu">1. CPU って なんだろう？</a></td>
+<td>CPU・プログラム・2進数</td>
+<td>はじめての人</td>
+</tr>
+<tr>
+<td><a href="#ch-02_tta8">2. TTA-8 の しくみ</a></td>
+<td>READ と WRITE だけで 計算できる ひみつ</td>
+<td>CPU の 中を 知りたい人</td>
+</tr>
+<tr>
+<td><a href="#ch-03_setup">3. じゅんびしよう</a></td>
+<td>ボード・ケーブル・道具の 用意</td>
+<td>ボードを 買った人</td>
+</tr>
+<tr>
+<td><a href="#ch-04_run">4. 動かしてみよう</a></td>
+<td>LED フラッシャーを ボードに 書きこむ</td>
+<td>ボードを 光らせたい人</td>
+</tr>
+<tr>
+<td><a href="#ch-05_lab">5. TTA-8 ラボで 中を のぞこう</a></td>
+<td>ブラウザの デバッガの 使いかた</td>
+<td>1命令ずつ 見たい人</td>
+</tr>
+<tr>
+<td><a href="#ch-06_basic">6. TinyBASIC改 で プログラムを 書こう</a></td>
+<td>BASIC の 文法と サンプル</td>
+<td>プログラムを 作りたい人</td>
+</tr>
+<tr>
+<td><a href="#ch-07_asm">7. アセンブリで 書いてみよう</a></td>
+<td>READ / WRITE で 直接 書く</td>
+<td>CPU の 気持ちに なりたい人</td>
+</tr>
+<tr>
+<td><a href="#ch-08_verilog">8. CPU の 設計図を 読もう</a></td>
+<td>Verilog と チューリング完全</td>
+<td>もっと 深く 知りたい人</td>
+</tr>
+<tr>
+<td><a href="#ch-09_ai">9. AI に こうやって たのもう</a></td>
+<td>こまったときの AI への 聞きかた</td>
+<td>だれでも</td>
+</tr>
+<tr>
+<td><a href="#ch-10_next">10. つぎの ぼうけんへ</a></td>
+<td>ブレッドボードで 回路を ふやそう</td>
+<td>ぜんぶ 読んだ人</td>
+</tr>
+<tr>
+<td><a href="#ch-appendix">ふろく</a></td>
+<td>こまったとき・用語集・大人の方へ</td>
+<td>保護者・先生</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>読みかたの ヒント</strong>　ボードが まだ なくても、1・2・5・6・7 章は ブラウザだけで ためせます。</p>
+</blockquote>
+<h2 id="このプロジェクトで-使うもの">このプロジェクトで 使うもの</h2>
+<ul>
+<li><strong>Sipeed Tang Nano 20K</strong>（FPGA ボード）</li>
+<li><strong>USB ケーブル</strong>（データ通信ができるもの。充電専用は ×）</li>
+<li><strong>パソコン</strong>（Windows か Mac）</li>
+<li>あれば <strong>ブレッドボード</strong>（ボードを さして 使うと 安定します）</li>
+</ul></section><section class="ch" id="ch-01_cpu"><h1 id="1-cpu-って-なんだろう">1. CPU って なんだろう？</h1>
+<h2 id="cpu-は命令を-1つずつ-こなす-係">CPU は「命令を 1つずつ こなす 係」</h2>
+<p>ゲーム機、スマホ、パソコン、電子レンジ……。
+その 中には <strong>CPU（シーピーユー）</strong> という 部品が 入っています。</p>
+<p>CPU が やることは、じつは とても 単純です。</p>
+<ol>
+<li>つぎの 命令を 読む</li>
+<li>その 命令を やる</li>
+<li>1 に もどる</li>
+</ol>
+<p>これを 1秒間に 何十億回も くりかえしているので、
+ゲームが 動いたり、動画が 見られたり するのです。</p>
+<blockquote>
+<p><strong>プログラム</strong> とは、CPU に やってほしい 命令を 順番に ならべた ものです。
+料理の レシピ みたいな ものですね。</p>
+</blockquote>
+<h2 id="コンピューターの-中は-ぜんぶ数">コンピューターの 中は ぜんぶ「数」</h2>
+<p>CPU は 文字も 絵も 音も、ぜんぶ <strong>数</strong> として あつかいます。
+しかも その 数は <strong>0 と 1 だけ</strong> で 書かれています。これを <strong>2進数（にしんすう）</strong> と いいます。</p>
+<p>LED を 6こ ならべて、光っている ところを 1、消えている ところを 0 と すると……</p>
+<table>
+<thead>
+<tr>
+<th>LED</th>
+<th>2進数</th>
+<th>ふつうの 数</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>_____○</code></td>
+<td>000001</td>
+<td>1</td>
+</tr>
+<tr>
+<td><code>____○_</code></td>
+<td>000010</td>
+<td>2</td>
+</tr>
+<tr>
+<td><code>____○○</code></td>
+<td>000011</td>
+<td>3</td>
+</tr>
+<tr>
+<td><code>○_○_○_</code></td>
+<td>101010</td>
+<td>42</td>
+</tr>
+<tr>
+<td><code>○○○○○○</code></td>
+<td>111111</td>
+<td>63</td>
+</tr>
+</tbody>
+</table>
+<p>右はしが 1、そのとなりが 2、つぎが 4、8、16、32 …と、
+左へ 行くたびに <strong>2倍</strong> に なります。
+<code>101010</code> は 32 + 8 + 2 = <strong>42</strong> です。</p>
+<h2 id="8bit-って">8bit って？</h2>
+<p>0 か 1 が 入る 1マスを <strong>ビット（bit）</strong> と いいます。
+<strong>8bit</strong> は 8マス なので、<code>00000000</code>（0）から <code>11111111</code>（255）まで、
+<strong>256 とおりの 数</strong> を あらわせます。</p>
+<p>この せつめい書で 作る CPU「<strong>TTA-8</strong>」は、8bit の 数を あつかう CPU です。
+255 に 1を たすと、あふれて 0 に もどります（車の メーターが 一周するのと 同じ）。</p>
+<h2 id="fpga-は回路を-書きかえられる-チップ">FPGA は「回路を 書きかえられる チップ」</h2>
+<p>ふつうの CPU は、工場で 作られた あとは 中身を 変えられません。
+でも <strong>FPGA（エフピージーエー）</strong> という チップは、
+<strong>設計図を 書きこむと、その とおりの 回路に 変身</strong> します。</p>
+<p>Tang Nano 20K に のっている FPGA に、
+TTA-8 の 設計図（Verilog という ことばで 書いたもの）を 書きこむと、
+FPGA の 中に <strong>ほんものの CPU</strong> が できあがります。</p>
+<p><img src="img/photo_s2.jpg" width="560" alt="Tang Nano 20K"></p>
+<p>TTA-8 は <strong>1秒に 1000命令</strong> の ゆっくりした CPU です。
+ゆっくりなので、LED の 動きを 目で 追いかけることが できます。</p></section><section class="ch" id="ch-02_tta8"><h1 id="2-tta-8-の-しくみ">2. TTA-8 の しくみ</h1>
+<h2 id="命令は-2つだけ">命令は 2つだけ！</h2>
+<p>ふつうの CPU には「たし算」「ジャンプ」「比べる」など、
+何十〜何百 種類もの 命令が あります。</p>
+<p>TTA-8 の 命令は、なんと <strong>2つだけ</strong> です。</p>
+<table>
+<thead>
+<tr>
+<th>命令</th>
+<th>読みかた</th>
+<th>すること</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>READ</strong></td>
+<td>よむ</td>
+<td>部品から 数を 1つ 受け取って、<strong>V</strong> に 入れる</td>
+</tr>
+<tr>
+<td><strong>WRITE</strong></td>
+<td>かく</td>
+<td><strong>V</strong> に 入っている 数を、部品に わたす</td>
+</tr>
+</tbody>
+</table>
+<p><strong>V（ブイ）</strong> は、数を 1つだけ 持てる「はこびや」さんです（<strong>レジスタ</strong> と いいます）。</p>
+<p><img alt="V ははこびや" src="img/tta_idea.svg" /></p>
+<p>「え、それだけで 計算できるの？」と 思いますよね。
+ひみつは <strong>部品の 方が 仕事を する</strong> ことです。
+けいさん係（ALU）に 数を わたすと、答えが すぐに 用意されます。
+V は それを 取りに 行くだけ。
+このような CPU を <strong>TTA（Transport Triggered Architecture ＝ 運ぶと 動く しくみ）</strong> と いいます。</p>
+<h2 id="命令の-形">命令の 形</h2>
+<p><img alt="命令の形" src="img/inst_format.svg" /></p>
+<p>1つの 命令は 8bit（1バイト）です。
+いちばん 左の 1bit で READ か WRITE かを えらび、
+のこりの 7bit で「どの 部品と やりとりするか」（<strong>アドレス</strong>）を えらびます。</p>
+<h2 id="部品と-アドレスの-一覧アドレスマップ">部品と アドレスの 一覧（アドレスマップ）</h2>
+<table>
+<thead>
+<tr>
+<th>アドレス</th>
+<th>名前</th>
+<th>READ（よむ）と…</th>
+<th>WRITE（かく）と…</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0x00</td>
+<td><strong>ALU_A</strong></td>
+<td>A の 数</td>
+<td>A に 数を 入れる</td>
+</tr>
+<tr>
+<td>0x01</td>
+<td><strong>ALU_B</strong></td>
+<td>B の 数</td>
+<td>B に 数を 入れる</td>
+</tr>
+<tr>
+<td>0x02</td>
+<td><strong>ALU_ADD</strong></td>
+<td>A + B の 答え</td>
+<td>―</td>
+</tr>
+<tr>
+<td>0x03</td>
+<td><strong>ALU_NAND</strong></td>
+<td>A NAND B の 答え</td>
+<td>―</td>
+</tr>
+<tr>
+<td>0x04</td>
+<td><strong>ALU_SUB</strong></td>
+<td>A − B の 答え</td>
+<td>―</td>
+</tr>
+<tr>
+<td>0x10</td>
+<td><strong>JMP</strong></td>
+<td>―</td>
+<td>その 番地へ ジャンプ</td>
+</tr>
+<tr>
+<td>0x11</td>
+<td><strong>JZ</strong></td>
+<td>―</td>
+<td>A が 0 の ときだけ ジャンプ</td>
+</tr>
+<tr>
+<td>0x12</td>
+<td><strong>IMM</strong></td>
+<td>命令の つぎに 書いた 数</td>
+<td>―</td>
+</tr>
+<tr>
+<td>0x20〜0x3F</td>
+<td><strong>$A〜$Z、$0〜$5</strong></td>
+<td>変数の 数</td>
+<td>変数に 数を 入れる</td>
+</tr>
+<tr>
+<td>0x7E</td>
+<td><strong>IN</strong></td>
+<td>ボタン（S1＝1、S2＝2、両方＝3）</td>
+<td>―</td>
+</tr>
+<tr>
+<td>0x7F</td>
+<td><strong>OUT</strong></td>
+<td>―</td>
+<td>LED に 出す（1 の ビットが 光る）</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><code>0x</code> が ついた 数は <strong>16進数</strong> です。0x10 は 16、0x7F は 127 の ことです。</p>
+</blockquote>
+<p><strong>ALU（エーエルユー）</strong> は Arithmetic Logic Unit（算術論理演算装置）の ことで、
+CPU の 中で 計算を する 係です。</p>
+<h2 id="3-5-を-計算してみよう">3 + 5 を 計算してみよう</h2>
+<pre><code>READ  IMM, 3      ; V に 3 を 入れる
+WRITE ALU_A       ; A = 3
+READ  IMM, 5      ; V に 5 を 入れる
+WRITE ALU_B       ; B = 5
+READ  ALU_ADD     ; V = A + B = 8
+WRITE OUT         ; LED に 8 を 出す → 001000
+</code></pre>
+<p>V が 数を 運んでいるだけなのに、ちゃんと 足し算が できました。
+LED には 8（2進数で <code>001000</code>）が 光ります。</p>
+<h2 id="ジャンプも書くだけ">ジャンプも「書くだけ」</h2>
+<p>CPU は <strong>PC（プログラムカウンター）</strong> という 番号で「いま 何番目の 命令か」を おぼえています。
+ふつうは 1つずつ 進みますが、</p>
+<ul>
+<li><strong>JMP に 書く</strong> と、PC が その 数に なります（＝ジャンプ）</li>
+<li><strong>JZ に 書く</strong> と、<strong>ALU_A が 0 の ときだけ</strong> ジャンプします</li>
+</ul>
+<p>JZ が あるので「0 に なるまで くりかえす」「ボタンが 押されていたら こっちへ」
+といった <strong>判断</strong> が できます。
+くわしくは <a href="#ch-08_verilog">8章</a> で、これだけで どんな 計算も できる（<strong>チューリング完全</strong>）ことを 説明します。</p>
+<h2 id="cpu-の-中身-まとめ">CPU の 中身 まとめ</h2>
+<p><img alt="CPU の中身" src="img/lab_cpu.png" /></p>
+<ul>
+<li><strong>PC</strong>：いま 何番目の 命令か（8bit）</li>
+<li><strong>V</strong>：数を 運ぶ はこびや（8bit）</li>
+<li><strong>プログラム（ROM）</strong>：命令が 256こ まで 入る</li>
+<li><strong>変数（RAM）</strong>：$A〜$Z と $0〜$5 の 32こ</li>
+<li><strong>ALU</strong>：A と B から たし算・ひき算・NAND を 計算</li>
+<li><strong>IN / OUT</strong>：ボタンと LED</li>
+</ul>
+<p>これで ぜんぶです。CPU の 設計図は、コメントを のぞくと <strong>たった 51行</strong> です。</p></section><section class="ch" id="ch-03_setup"><h1 id="3-じゅんびしよう">3. じゅんびしよう</h1>
+<h2 id="用意するもの">用意するもの</h2>
+<table>
+<thead>
+<tr>
+<th>もの</th>
+<th>ポイント</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Sipeed Tang Nano 20K</strong></td>
+<td>FPGA ボード。通販で 買えます</td>
+</tr>
+<tr>
+<td><strong>USB ケーブル</strong>（USB-C）</td>
+<td><strong>データ通信ができる もの</strong>。充電専用だと ボードが 見えません</td>
+</tr>
+<tr>
+<td><strong>パソコン</strong></td>
+<td>Windows 10 / 11 か Mac</td>
+</tr>
+<tr>
+<td>ブレッドボード（あれば）</td>
+<td>ボードを さして おくと 安定します。<a href="#ch-10_next">10章</a> の ぼうけんにも 使います</td>
+</tr>
+</tbody>
+</table>
+<h2 id="①-このプロジェクトを-ダウンロードする">① このプロジェクトを ダウンロードする</h2>
+<ol>
+<li>GitHub の このプロジェクトの ページ（https://github.com/tjm8874/TTA-8）を 開く</li>
+<li>緑の <strong>「Code」</strong> ボタン → <strong>「Download ZIP」</strong></li>
+<li>ZIP を 開いて（展開して）、すきな 場所に おく</li>
+</ol>
+<p>中身は こうなっています。</p>
+<pre><code>Minimal_CPU/
+├ FPGA_Tool/      ← ボードに 書きこむ 道具（ダブルクリックで 使う）
+│  ├ Windows/
+│  └ Mac/
+├ debugger/       ← TTA-8 ラボ（index.html を ブラウザで 開く）
+├ hdl/            ← CPU の 設計図（Verilog）と 書きこむ ファイル
+├ programs/       ← サンプルプログラム
+└ docs/           ← この せつめい書
+</code></pre>
+<h2 id="②-ボードの-向きを-おぼえよう">② ボードの 向きを おぼえよう</h2>
+<p><img src="img/board_guide.jpg" width="640" alt="ボードの向き"></p>
+<p><strong>「TANG NANO 20K」の 文字が 読める 向き</strong>（USB が 左）で 置きます。
+この向きで、LED は <strong>右はしが bit0</strong>、左はしが bit5 です。
+プログラムで <code>OUT 1</code> と すると、右はしの LED が 光ります。</p>
+<blockquote>
+<p>基板には 小さく LED0〜LED5 と 印字されていますが、この プロジェクトでは
+2進数と 合わせるために <strong>逆の 番号（右はしが 0）</strong> を 使います。</p>
+</blockquote>
+<h2 id="③-windows-の-じゅんびはじめに-1回だけ">③ Windows の じゅんび（はじめに 1回だけ）</h2>
+<p><code>FPGA_Tool\Windows</code> を 開きます。</p>
+<h3 id="0_setup_driverbat-usb-ドライバの-設定">0_setup_driver.bat … USB ドライバの 設定</h3>
+<p>ボードに 書きこむ 道具（openFPGALoader）が ボードと 話せるように、
+<strong>Zadig（ザディグ）</strong> という 道具で ドライバを 入れかえます。</p>
+<ol>
+<li>ボードを USB で つなぐ</li>
+<li><code>0_setup_driver.bat</code> を ダブルクリック → 何か キーを おすと Zadig が 開く</li>
+<li>「このアプリが 変更を 加えることを 許可しますか」→ <strong>はい</strong></li>
+<li>メニューの <strong>Options → List All Devices</strong> に チェック</li>
+<li>リストから <strong>USB Debugger (Interface 0)</strong> を えらぶ</li>
+<li>下の <strong>USB ID が <code>0403 6010 00</code></strong> に なっていれば 正解</li>
+<li><strong>Interface 1 は えらばない</strong></li>
+<li>右がわが <strong>WinUSB</strong> に なっているのを 確認して <strong>Replace Driver</strong></li>
+</ol>
+<p><img src="img/zadig.png" width="560" alt="Zadig の画面"></p>
+<ol>
+<li>「successfully」と 出たら 完了</li>
+</ol>
+<blockquote>
+<p><strong>リストに 出ないときは</strong>：「不明な USB デバイス」しか 出ない ときは、
+ケーブルが 充電専用 かもしれません。べつの ケーブルに かえるか、
+パソコン本体の USB に 直接 さして みてください。</p>
+</blockquote>
+<h3 id="1_check_boardbat-ボードが-見えるか-確認">1_check_board.bat … ボードが 見えるか 確認</h3>
+<p>ダブルクリックして、<strong>model GW2A(R)-18(C)</strong> と 出れば OK です。</p>
+<p><img src="img/check_board.png" width="560" alt="1_check_board の結果"></p>
+<h2 id="④-mac-の-じゅんびはじめに-1回だけ">④ Mac の じゅんび（はじめに 1回だけ）</h2>
+<p>Mac では ドライバの 設定は いりません。
+「ターミナル」を 開いて、<code>FPGA_Tool/Mac</code> の 中で つぎを 実行します。</p>
+<pre><code>bash 0_setup.sh         # openFPGALoader を 入れる（Homebrew が 必要）
+bash 1_check_board.sh   # ボードが 見えるか 確認
+</code></pre>
+<blockquote>
+<p>ファイルを ターミナルの 画面に ドラッグ＆ドロップすると、場所を 打たなくて すみます。
+Homebrew が ない ときは、<a href="#ch-09_ai">9章</a> の やりかたで AI に 聞いてみよう。</p>
+</blockquote></section><section class="ch" id="ch-04_run"><h1 id="4-動かしてみよう">4. 動かしてみよう</h1>
+<h2 id="書きこみかたは-2しゅるい">書きこみかたは 2しゅるい</h2>
+<table>
+<thead>
+<tr>
+<th>ファイル（Windows / Mac）</th>
+<th>どうなる？</th>
+<th>いつ 使う？</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>2_write_sram.bat</code> / <code>.sh</code></td>
+<td><strong>おためし</strong>。電源を 切ると 消える</td>
+<td>何度も ためす とき</td>
+</tr>
+<tr>
+<td><code>3_write_flash.bat</code> / <code>.sh</code></td>
+<td><strong>ずっと</strong>。電源を 切っても のこる</td>
+<td>完成した とき</td>
+</tr>
+</tbody>
+</table>
+<p>さいしょは <strong>おためし</strong> で やってみましょう。</p>
+<h2 id="led-フラッシャーを-書きこもう">LED フラッシャーを 書きこもう</h2>
+<ol>
+<li>ボードを USB で つなぐ</li>
+<li><code>FPGA_Tool\Windows\2_write_sram.bat</code> を ダブルクリック（Mac は <code>bash 2_write_sram.sh</code>）</li>
+<li><strong>「おわり！ LED を 見てみよう」</strong> と 出たら 成功</li>
+</ol>
+<p>最初から 入っている <code>hdl/minimal_cpu.fs</code> には、<strong>LED フラッシャー</strong> の プログラムが 入っています。</p>
+<h2 id="ボタンを-おしてみよう">ボタンを おしてみよう</h2>
+<table>
+<thead>
+<tr>
+<th>おす ボタン</th>
+<th>LED の 動き（0.5秒ごと）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>なし</td>
+<td>右はしが 点滅　<code>_____○</code> ⇔ <code>______</code></td>
+</tr>
+<tr>
+<td><strong>S1</strong></td>
+<td>光が 右から 左へ 流れる　<code>_____○</code> → <code>____○_</code> → … → <code>○_____</code></td>
+</tr>
+<tr>
+<td><strong>S2</strong></td>
+<td>外から 内へ　<code>○____○</code> → <code>_○__○_</code> → <code>__○○__</code></td>
+</tr>
+<tr>
+<td><strong>S1 と S2</strong></td>
+<td>交互に 点滅　<code>○_○_○_</code> ⇔ <code>_○_○_○</code></td>
+</tr>
+</tbody>
+</table>
+<p><img src="img/photo_idle.jpg" width="420" alt="なにも押さないとき"> <img src="img/photo_s1s2.jpg" width="420" alt="S1とS2を押したとき"></p>
+<p>左：なにも おさない とき（右はしが 点滅）　右：S1 と S2 を いっしょに おした とき</p>
+<h2 id="電源を-切っても-動くように-する">電源を 切っても 動くように する</h2>
+<p><code>3_write_flash.bat</code> で 書きこむと、USB を ぬいて さしなおしても 同じ プログラムが 動きます。
+少し 時間が かかりますが、さいごに <strong>Done</strong> と <strong>おわり！</strong> が 出れば OK です。</p>
+<p><img src="img/write_flash.png" width="420" alt="3_write_flash の画面"></p>
+<blockquote>
+<p>黄色い 文字で <code>flash chip unknown</code> と 出ますが、問題 ありません。</p>
+</blockquote>
+<h2 id="自分の-プログラムを-書きこむには">自分の プログラムを 書きこむには</h2>
+<p>ボードの 中身は <strong>CPU（Verilog）＋ プログラム（program.hex）</strong> で できています。
+プログラムを 変えたら、<strong>CPU と いっしょに くみたて直す（ビルドする）</strong> ひつようが あります。</p>
+<p><img alt="プログラムがボードで動くまで" src="img/flow.svg" /></p>
+<ol>
+<li><a href="#ch-05_lab">5章</a> の <strong>TTA-8 ラボ</strong> で プログラムを 作り、<strong>「ボード用に保存」</strong> を おす → <code>program.hex</code> が 保存される</li>
+<li><code>program.hex</code> を <strong><code>4_build.bat</code> の 上に ドラッグ＆ドロップ</strong>（Mac は <code>bash 4_build.sh program.hex</code>）</li>
+<li>自動で <code>hdl/program.hex</code> に コピーされて、ビルドが 始まります</li>
+<li><strong>はじめての ときだけ</strong>、ビルド道具（OSS CAD Suite、約600MB）を ダウンロードします</li>
+<li><strong>「できた！」</strong> と 出たら、<code>2_write_sram.bat</code> で 書きこむ</li>
+</ol></section><section class="ch" id="ch-05_lab"><h1 id="5-tta-8-ラボで-中を-のぞこう">5. TTA-8 ラボで 中を のぞこう</h1>
+<p><strong>TTA-8 ラボ</strong> は、ブラウザで 動く TTA-8 の デバッガです。
+ボードが なくても、CPU の 中で 何が 起きているかを 1命令ずつ 見られます。</p>
+<p><code>debugger/index.html</code> を ダブルクリックすると、ブラウザで 開きます（インターネットは いりません）。</p>
+<p><img alt="TTA-8 ラボ" src="img/lab_step.png" /></p>
+<h2 id="画面の-見かた">画面の 見かた</h2>
+<table>
+<thead>
+<tr>
+<th>場所</th>
+<th>見えるもの</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>左：<strong>プログラム</strong></td>
+<td>ブロック・BASIC・アセンブリの 3つの 見かたで プログラムを 表示</td>
+</tr>
+<tr>
+<td>右上：<strong>もぎボード</strong></td>
+<td>Tang Nano 20K の まね。S1・S2 を クリックで おせる</td>
+</tr>
+<tr>
+<td>右中：<strong>CPU の 中身</strong></td>
+<td>PC・V・ALU・変数・IN・OUT が いまの 値と いっしょに 見える</td>
+</tr>
+<tr>
+<td>右下：<strong>ミッション</strong></td>
+<td>クリアすると ほしが もらえる</td>
+</tr>
+</tbody>
+</table>
+<h2 id="動かしかた">動かしかた</h2>
+<table>
+<thead>
+<tr>
+<th>ボタン</th>
+<th>キー</th>
+<th>すること</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>スタート</strong>（みどりの旗）</td>
+<td>スペース</td>
+<td>動かす</td>
+</tr>
+<tr>
+<td><strong>とめる</strong></td>
+<td></td>
+<td>止める</td>
+</tr>
+<tr>
+<td><strong>1つすすむ</strong></td>
+<td>→</td>
+<td>1命令だけ 進める</td>
+</tr>
+<tr>
+<td><strong>さいしょから</strong></td>
+<td></td>
+<td>リセット</td>
+</tr>
+<tr>
+<td><strong>かめ / うさぎ / ロケット</strong></td>
+<td></td>
+<td>速さ。<strong>ロケット</strong> は 本物の ボードと 同じ 1秒に 1000命令</td>
+</tr>
+</tbody>
+</table>
+<p><strong>1つすすむ</strong> を おすと、V が 部品から 部品へ 数を 運ぶ ようすが、
+バス（データの 通り道）を 走る 玉で 見えます。</p>
+<ul>
+<li>玉が <strong>部品 → V</strong> に 走ったら <strong>READ（よむ）</strong></li>
+<li>玉が <strong>V → 部品</strong> に 走ったら <strong>WRITE（かく）</strong></li>
+</ul>
+<p>キャラクターが「いま 何を したか」を ことばで 教えてくれます。</p>
+<h2 id="もぎボード">もぎボード</h2>
+<p><img src="img/lab_board.png" width="640" alt="もぎボード"></p>
+<p>本物の ボードと 同じ 向き・同じ 位置に、S1・S2・LED が あります。
+キーボードの <strong>1</strong>・<strong>2</strong> でも ボタンを おせます。
+「ボタンを おしたまま にする」に チェックすると、両方を おしたままに できます。</p>
+<h2 id="ブレークポイント">ブレークポイント</h2>
+<p>プログラムの 行の 左はしを クリックすると、そこで 止まる しるし（<strong>ブレークポイント</strong>）が つきます。
+ロケットで 走らせて、気になる ところで 止めてみましょう。</p>
+<h2 id="ミッション">ミッション</h2>
+<p><img src="img/lab_mission.png" width="480" alt="ミッション"></p>
+<p>「1つすすむを 10回 おそう」「JZ の ジャンプが 決まるのを 見よう」など、8つの ミッションが あります。
+ぜんぶ クリアできるかな？</p>
+<h2 id="プログラムを-書きかえる">プログラムを 書きかえる</h2>
+<ul>
+<li><strong>BASIC</strong> タブ → <strong>かきかえる</strong> → 書きかえて <strong>くみたてる</strong></li>
+<li><strong>アセンブリ</strong> タブ → 書きかえて <strong>くみたてる</strong></li>
+<li>できたら <strong>ボード用に保存</strong> で <code>program.hex</code> を 保存 → <a href="#自分の-プログラムを-書きこむには">4章</a> の やりかたで ボードへ</li>
+</ul></section><section class="ch" id="ch-06_basic"><h1 id="6-tinybasic改-で-プログラムを-書こう">6. TinyBASIC改 で プログラムを 書こう</h1>
+<p><strong>TinyBASIC改</strong> は、TTA-8 のために 作った 小さな BASIC です。
+パソコン（ブラウザ）の 上で、TTA-8 の 命令（READ / WRITE）に 翻訳されます。</p>
+<h2 id="はじめての-プログラム">はじめての プログラム</h2>
+<pre><code class="language-basic">10 REM ===== はじめての たし算 =====
+20 $A = 3
+30 $B = 5
+40 $C = $A + $B
+50 OUT $C
+60 END
+</code></pre>
+<ul>
+<li>1行ずつ <strong>行番号</strong>（10, 20, 30 …）から 書きます</li>
+<li><code>$A</code> は <strong>変数</strong>（数を 1つ しまっておく 箱）</li>
+<li><code>OUT</code> で LED に 出します。8 は <code>001000</code> と 光ります</li>
+<li><code>REM</code> の うしろは メモ（プログラムには 関係 ありません）</li>
+</ul>
+<h2 id="変数と-数">変数と 数</h2>
+<table>
+<thead>
+<tr>
+<th>もの</th>
+<th>書きかた</th>
+<th>せつめい</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>変数</td>
+<td><code>$A</code>〜<code>$Z</code>、<code>$0</code>〜<code>$5</code></td>
+<td>ぜんぶで 32こ。0〜255 の 数が 1つ 入る</td>
+</tr>
+<tr>
+<td>数</td>
+<td><code>12</code>、<code>0b101010</code>、<code>0x2A</code></td>
+<td>10進・2進・16進。0〜255</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>255 を こえると 0 に もどり、0 より 小さく なると 255 の ほうへ まわります（8bit だから）。</p>
+</blockquote>
+<h2 id="計算">計算</h2>
+<table>
+<thead>
+<tr>
+<th>書きかた</th>
+<th>意味</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>$A + 1</code></td>
+<td>たし算</td>
+</tr>
+<tr>
+<td><code>$A - 1</code></td>
+<td>ひき算</td>
+</tr>
+<tr>
+<td><code>$A AND 0b000111</code></td>
+<td>どちらも 1 の ビットだけ 1</td>
+</tr>
+<tr>
+<td><code>$A OR 0b100000</code></td>
+<td>どちらかが 1 の ビットは 1</td>
+</tr>
+<tr>
+<td><code>$A NAND $B</code></td>
+<td>AND の 反対</td>
+</tr>
+<tr>
+<td><code>IN</code></td>
+<td>ボタン（S1＝1、S2＝2、両方＝3）</td>
+</tr>
+</tbody>
+</table>
+<p>左から 順に 計算します（かっこは 使えません）。</p>
+<h2 id="命令の-一覧">命令の 一覧</h2>
+<table>
+<thead>
+<tr>
+<th>命令</th>
+<th>例</th>
+<th>意味</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>代入</td>
+<td><code>$A = $B + 1</code></td>
+<td>変数に 入れる</td>
+</tr>
+<tr>
+<td><code>OUT</code></td>
+<td><code>OUT 0b000001</code></td>
+<td>LED に 出す（右はしが bit0）</td>
+</tr>
+<tr>
+<td><code>IF … THEN</code></td>
+<td><code>IF $M = 1 THEN GOTO 300</code></td>
+<td>同じ なら THEN の あとを やる</td>
+</tr>
+<tr>
+<td></td>
+<td><code>IF IN &lt;&gt; $M THEN GOTO 100</code></td>
+<td>ちがう なら THEN の あとを やる</td>
+</tr>
+<tr>
+<td><code>GOTO</code></td>
+<td><code>GOTO 100</code></td>
+<td>その 行へ とぶ</td>
+</tr>
+<tr>
+<td><code>GOSUB</code> / <code>RETURN</code></td>
+<td><code>GOSUB 900</code></td>
+<td>その 行へ 行って、RETURN で もどってくる</td>
+</tr>
+<tr>
+<td><code>WAIT</code></td>
+<td><code>WAIT 50</code></td>
+<td>50 × 0.01秒 ＝ 0.5秒 まつ</td>
+</tr>
+<tr>
+<td><code>POKE</code> / <code>PEEK</code></td>
+<td><code>POKE 127, 5</code></td>
+<td>アドレスに 直接 書く / 読む</td>
+</tr>
+<tr>
+<td><code>END</code></td>
+<td><code>END</code></td>
+<td>おわり</td>
+</tr>
+<tr>
+<td><code>REM</code></td>
+<td><code>REM メモ</code></td>
+<td>メモ</td>
+</tr>
+</tbody>
+</table>
+<p><code>:</code> で 区切ると、1行に いくつも 書けます（例：<code>$L = 1 : GOSUB 900</code>）。</p>
+<h2 id="ためしてみよう">ためしてみよう</h2>
+<h3 id="led-で-2進数カウンター">LED で 2進数カウンター</h3>
+<pre><code class="language-basic">10 REM ===== LED で 2進数カウンター =====
+20 $C = 0
+30 OUT $C
+40 WAIT 50
+50 $C = $C + 1
+60 GOTO 30
+</code></pre>
+<p>0.5秒ごとに 1ずつ ふえて、LED が 2進数で 数えます。63 の つぎは？ 考えてから ためしてみよう。</p>
+<h3 id="かけ算-6-7">かけ算 6 × 7</h3>
+<p>TTA-8 には かけ算の 部品が ありません。でも <strong>たし算を くりかえせば</strong> できます。</p>
+<pre><code class="language-basic">10 REM ===== かけ算 6 x 7 (たし算のくりかえし) =====
+20 $A = 6 : $B = 7 : $C = 0
+30 IF $B = 0 THEN GOTO 70
+40 $C = $C + $A
+50 $B = $B - 1
+60 GOTO 30
+70 OUT $C
+80 END
+</code></pre>
+<p>答えの 42 は <code>101010</code>。LED が 1つおきに 光ります。</p>
+<h3 id="led-フラッシャーボードに-入っている-もの">LED フラッシャー（ボードに 入っている もの）</h3>
+<p><code>programs/basic/flasher.bas</code> を TTA-8 ラボの サンプルから えらんで、中を 読んでみましょう。
+<code>IN</code> で ボタンを 読んで、<code>IF</code> で 模様を えらんでいます。</p>
+<h2 id="できないこと-と-その-かわり">できないこと と その かわり</h2>
+<table>
+<thead>
+<tr>
+<th>できないこと</th>
+<th>かわりの 方法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>&lt;</code> <code>&gt;</code> で 比べる</td>
+<td><code>&lt;&gt;</code>（ちがう）を 使って くりかえす</td>
+</tr>
+<tr>
+<td>かっこ <code>( )</code></td>
+<td>式を 2行に 分ける</td>
+</tr>
+<tr>
+<td><code>GOSUB</code> の 中で <code>GOSUB</code></td>
+<td>もどり先を 1つしか おぼえられない</td>
+</tr>
+<tr>
+<td><code>PRINT</code>（文字を 出す）</td>
+<td>画面が ないので LED に <code>OUT</code> する</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>くわしい 文法は <a href="../tinybasic.md">TinyBASIC改 文法書</a> を 見てね。</p>
+</blockquote></section><section class="ch" id="ch-07_asm"><h1 id="7-アセンブリで-書いてみよう">7. アセンブリで 書いてみよう</h1>
+<p>BASIC は 便利ですが、CPU が ほんとうに やっているのは <strong>READ と WRITE だけ</strong> です。
+その 命令を 直接 書く ことばを <strong>アセンブリ</strong> と いいます。
+TTA-8 ラボの <strong>アセンブリ</strong> タブで 書けます。</p>
+<h2 id="書きかた">書きかた</h2>
+<pre><code class="language-asm">; セミコロンの あとは メモ
+LABEL:  READ  名前          ; 名前の 部品から V へ
+        WRITE 名前          ; V から 名前の 部品へ
+        READ  IMM, 数       ; 数を そのまま V へ（2バイト 命令）
+        READ  IMM, LABEL    ; LABEL の 番地を V へ（ジャンプ先に 使う）
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>READ できる 名前</th>
+<th>WRITE できる 名前</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ALU_A</code> <code>ALU_B</code> <code>ALU_ADD</code> <code>ALU_NAND</code> <code>ALU_SUB</code> <code>IN</code> <code>IMM</code> 変数</td>
+<td><code>ALU_A</code> <code>ALU_B</code> <code>JMP</code> <code>JZ</code> <code>OUT</code> 変数</td>
+</tr>
+</tbody>
+</table>
+<p>変数は <code>$A</code>〜<code>$Z</code>、<code>$0</code>〜<code>$5</code> です。</p>
+<h2 id="ジャンプの-しかた">ジャンプの しかた</h2>
+<p>ジャンプは「<strong>行き先の 番地を V に 入れて、JMP に 書く</strong>」の 2命令です。</p>
+<pre><code class="language-asm">        READ  IMM, LOOP     ; V = LOOP の 番地
+        WRITE JMP           ; PC = V → LOOP へ ジャンプ！
+</code></pre>
+<p><strong>もし 0 なら ジャンプ</strong> は、先に ALU_A に 調べたい 数を 入れておいて、JZ に 書きます。</p>
+<pre><code class="language-asm">        READ  $N
+        WRITE ALU_A         ; ALU_A = $N
+        READ  IMM, DONE
+        WRITE JZ            ; ALU_A が 0 なら DONE へ。0 でなければ 次の 行へ
+</code></pre>
+<h2 id="れんしゅう5-から-0-まで-カウントダウン">れんしゅう：5 から 0 まで カウントダウン</h2>
+<pre><code class="language-asm">; 5 から 0 まで 数えて LED に出す
+        READ  IMM, 5
+        WRITE $N            ; $N = 5
+LOOP:   READ  $N
+        WRITE OUT           ; LED に $N を出す
+        WRITE ALU_A         ; ALU_A = $N
+        READ  IMM, DONE
+        WRITE JZ            ; ALU_A が 0 なら DONE へ
+        READ  IMM, 1
+        WRITE ALU_B         ; ALU_B = 1
+        READ  ALU_SUB       ; V = $N - 1
+        WRITE $N            ; $N = V
+        READ  IMM, LOOP
+        WRITE JMP           ; LOOP へ もどる
+DONE:   READ  IMM, DONE
+        WRITE JMP           ; ずっと 足ぶみ
+</code></pre>
+<p>TTA-8 ラボに 貼りつけて <strong>くみたてる</strong> → <strong>かめ</strong> の 速さで スタート。
+LED が 5（<code>000101</code>）→ 4 → 3 → 2 → 1 → 0 と 変わって 止まれば 成功です。</p>
+<blockquote>
+<p><strong>ポイント</strong>：<code>WRITE OUT</code> の あと、V の 中身は 変わらないので、
+そのまま <code>WRITE ALU_A</code> できます。V を じょうずに 使いまわすのが アセンブリの コツです。</p>
+</blockquote>
+<h2 id="チャレンジ">チャレンジ</h2>
+<ol>
+<li>0 から 5 まで <strong>数え上げる</strong> ように 書きかえよう（ヒント：ALU_ADD と、5 を ひいて 0 か 調べる）</li>
+<li>BASIC で 書いた <code>$C = $A + $B</code> が どんな アセンブリに なるか、TTA-8 ラボの アセンブリ タブで 見てみよう</li>
+<li><code>ALU_NAND</code> だけで <code>AND</code> を 作れるかな？（ヒント：NAND を 2回）</li>
+</ol></section><section class="ch" id="ch-08_verilog"><h1 id="8-cpu-の-設計図を-読もう">8. CPU の 設計図を 読もう</h1>
+<p>TTA-8 の 設計図は <code>hdl/tta8.v</code> に あります。
+<strong>Verilog（ベリログ）</strong> という、回路を 書くための ことばで 書かれています。
+コメントを のぞくと <strong>51行</strong>。いっしょに 読んでみましょう。</p>
+<h2 id="①-部品を-用意する">① 部品を 用意する</h2>
+<pre><code class="language-verilog">reg [7:0] rom [0:255];            // プログラム 256バイト
+initial $readmemh(&quot;program.hex&quot;, rom);
+
+reg  [7:0] pc;                    // いま 何番目の 命令か
+reg  [7:0] v;                     // V : たった1つのレジスタ
+reg  [7:0] alu_a, alu_b;          // ALU に 入れる数
+reg  [7:0] ram [0:31];            // 変数 $A-$Z, $0-$5
+</code></pre>
+<p><code>reg [7:0]</code> は「8bit の 箱」という 意味です。
+<code>program.hex</code> を ROM に 読みこんでいます。</p>
+<h2 id="②-命令を-分ける">② 命令を 分ける</h2>
+<pre><code class="language-verilog">wire [7:0] inst  = rom[pc];       // いまの 命令
+wire       write = inst[7];       // いちばん左の bit : 0=READ 1=WRITE
+wire [6:0] addr  = inst[6:0];     // のこり 7bit : アドレス
+</code></pre>
+<p><a href="#ch-02_tta8">2章</a> の 命令の 形 そのままです。</p>
+<h2 id="③-read-したら-何が-読めるか">③ READ したら 何が 読めるか</h2>
+<pre><code class="language-verilog">case (addr)
+    7'h00:   rdata = alu_a;               // ALU_A
+    7'h01:   rdata = alu_b;               // ALU_B
+    7'h02:   rdata = alu_a + alu_b;       // ALU_ADD
+    7'h03:   rdata = ~(alu_a &amp; alu_b);    // ALU_NAND
+    7'h04:   rdata = alu_a - alu_b;       // ALU_SUB
+    7'h12:   rdata = rom[pc + 8'd1];      // IMM (次の1バイト)
+    7'h7E:   rdata = {6'b0, btn};         // IN
+    default: rdata = is_ram ? ram[addr[4:0]] : 8'h00;
+endcase
+</code></pre>
+<p><strong>ALU は ここだけ</strong> です。<code>+</code> <code>-</code> <code>&amp;</code> <code>~</code> を 書くだけで、FPGA が 計算回路を 作ってくれます。</p>
+<h2 id="④-1命令を-実行する">④ 1命令を 実行する</h2>
+<pre><code class="language-verilog">pc &lt;= pc + 8'd1;                          // ふつうは 次へ
+if (!write) begin                         // ===== READ
+    v &lt;= rdata;
+    if (addr == 7'h12) pc &lt;= pc + 8'd2;   // IMM は 定数を とばす
+end else begin                            // ===== WRITE
+    case (addr)
+        7'h00: alu_a &lt;= v;                // ALU_A
+        7'h01: alu_b &lt;= v;                // ALU_B
+        7'h10: pc &lt;= v;                   // JMP
+        7'h11: if (alu_a == 0) pc &lt;= v;   // JZ (ALU_A が 0 なら)
+        7'h7F: led &lt;= v[5:0];             // OUT
+        default: if (is_ram) ram[addr[4:0]] &lt;= v;
+    endcase
+end
+</code></pre>
+<ul>
+<li>READ なら <code>v &lt;= rdata</code>（部品 → V）</li>
+<li>WRITE なら <code>○○ &lt;= v</code>（V → 部品）</li>
+<li><strong>JMP は「PC に 書く」だけ</strong>。JZ は「A が 0 なら PC に 書く」だけ</li>
+</ul>
+<p>CPU の 動きが、ほとんど そのまま 書いてあるのが わかりますね。</p>
+<h2 id="⑤-ボードと-つなぐtop_tangnano20kv">⑤ ボードと つなぐ（top_tangnano20k.v）</h2>
+<p><code>hdl/top_tangnano20k.v</code> は、ボードと CPU を つなぐ ファイルです。</p>
+<ul>
+<li>ボードの 時計（<strong>27MHz</strong> ＝ 1秒に 2700万回）を 数えて、<strong>1秒に 1000回</strong> だけ CPU を 進める</li>
+<li>ボタンの 信号を 時計に そろえる</li>
+<li>LED は 0 で 光る 回路なので、反対（<code>~led</code>）に して つなぐ</li>
+</ul>
+<p>どの ピンに つなぐかは <code>hdl/tangnano20k.cst</code> に 書いてあります。</p>
+<h2 id="⑥-チューリング完全って">⑥ チューリング完全って？</h2>
+<p>「<strong>どんな 計算でも（時間と メモリさえ あれば）できる</strong>」ことを <strong>チューリング完全</strong> と いいます。
+スマホの CPU も スーパーコンピューターも チューリング完全です。</p>
+<p>TTA-8 で できることを ならべると……</p>
+<ol>
+<li>変数に 1 を <strong>たす</strong>（ALU_ADD）</li>
+<li>変数から 1 を <strong>ひく</strong>（ALU_SUB）</li>
+<li>変数が <strong>0 か どうかで ジャンプ</strong> する（JZ）</li>
+</ol>
+<p>じつは この 3つが あれば「<strong>カウンター機械（ミンスキー機械）</strong>」という 計算の しくみを 作れて、
+それは チューリング完全だと 数学で 証明されています。
+だから TTA-8 も（メモリが 256バイトまで という 点を のぞけば）<strong>チューリング完全</strong> です。</p>
+<blockquote>
+<p>かけ算も、わり算も、ぜんぶ「たす・ひく・0 で ジャンプ」の くみあわせで 作れます。
+<a href="#ch-06_basic">6章</a> の かけ算 6 × 7 が その 例です。</p>
+</blockquote></section><section class="ch" id="ch-09_ai"><h1 id="9-ai-に-こうやって-たのもう">9. AI に こうやって たのもう</h1>
+<p>こまったときは、AI（Claude や ChatGPT、Gemini など）に 聞いてみましょう。
+<strong>じょうずに 聞く コツ</strong> は 3つです。</p>
+<ol>
+<li><strong>何を しようとしているか</strong> を 書く</li>
+<li><strong>何が 起きたか</strong>（エラーの 文字や 画面）を そのまま 見せる</li>
+<li><strong>自分の パソコン</strong>（Windows か Mac か）を 書く</li>
+</ol>
+<h2 id="そのまま-使える-たのみかた">そのまま 使える たのみかた</h2>
+<h3 id="じゅんびで-こまったとき">じゅんびで こまったとき</h3>
+<pre><code>Tang Nano 20K という FPGA ボードに、openFPGALoader で 書きこもうとしています。
+パソコンは Windows 11 です。
+1_check_board.bat を 動かしたら、下の 文字が 出ました。どうすれば いいですか？
+（ここに 黒い画面の 文字を 貼る）
+</code></pre>
+<pre><code>Mac に Homebrew を 入れたいです。小学生にも わかるように、
+ターミナルで 何を 打てば いいか 1つずつ 教えてください。
+</code></pre>
+<h3 id="プログラムを-作りたいとき">プログラムを 作りたいとき</h3>
+<p>AI は TinyBASIC改 を 知りません。<strong>文法書を いっしょに わたす</strong> のが コツです。</p>
+<pre><code>下の 文法の「TinyBASIC改」で、LED 6こ を 使った プログラムを 書いてください。
+S1 を おしたら LED が 左から 右へ 流れるように したいです。
+LED は 右はしが bit0 です。1命令 0.001秒 の CPU です。
+（ここに docs/tinybasic.md の 中身を 貼る）
+</code></pre>
+<pre><code>この TinyBASIC改 の プログラムで、LED が 思った とおりに 光りません。
+やりたいこと：（ここに 書く）
+プログラム：（ここに 貼る）
+TTA-8 ラボで 動かすと、（ここに 起きたことを 書く）
+</code></pre>
+<h3 id="しくみを-知りたいとき">しくみを 知りたいとき</h3>
+<pre><code>TTA-8 という、命令が READ と WRITE だけの CPU を 勉強しています。
+「JZ に 書くと ALU_A が 0 の ときだけ ジャンプする」の 意味を、
+小学5年生に わかるように たとえ話で 説明してください。
+</code></pre>
+<pre><code>hdl/tta8.v の この 部分が わかりません。1行ずつ 説明してください。
+（ここに Verilog を 貼る）
+</code></pre>
+<h3 id="改造したいとき">改造したいとき</h3>
+<pre><code>TTA-8 の Verilog（下に 貼ります）に、ブザーを 鳴らす 出力を 1つ 足したいです。
+アドレス 0x7D に 書くと、ブザーの ON/OFF が 変わるように したいです。
+Tang Nano 20K の どの ピンに つなげば いいかも 教えてください。
+（ここに hdl/tta8.v と hdl/top_tangnano20k.v を 貼る）
+</code></pre>
+<h2 id="気をつけること">気をつけること</h2>
+<ul>
+<li>AI の 答えが <strong>まちがっている</strong> ことも あります。TTA-8 ラボで ためして、動くか 確かめよう</li>
+<li><strong>名前・住所・パスワード</strong> などは 書かないこと</li>
+<li>わからない ところは「もっと かんたんに」「たとえ話で」と たのみなおして OK</li>
+</ul></section><section class="ch" id="ch-10_next"><h1 id="10-つぎの-ぼうけんへ">10. つぎの ぼうけんへ</h1>
+<p>ここまで 読んだ キミは、</p>
+<ul>
+<li>CPU が <strong>命令を 1つずつ こなす</strong> しくみ</li>
+<li><strong>READ と WRITE だけ</strong> でも 計算・判断・くりかえしが できる こと</li>
+<li>その CPU を <strong>FPGA の 中に 作って 動かす</strong> 方法</li>
+</ul>
+<p>を 知っています。これは 大人の エンジニアでも しっかり 説明できる 人が 少ない ことです。</p>
+<h2 id="ブレッドボードで-回路を-ふやそう">ブレッドボードで 回路を ふやそう</h2>
+<p>Tang Nano 20K の まわりには、たくさんの <strong>ピン（足）</strong> が ならんでいます。
+ブレッドボードに させば、ボードの <strong>外がわに いろいろな 回路を つなげられます</strong>。</p>
+<table>
+<thead>
+<tr>
+<th>つなぐもの</th>
+<th>できること</th>
+<th>TTA-8 の 改造アイデア</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>LED を もっと</td>
+<td>8こ、16こ の イルミネーション</td>
+<td>OUT を 8bit に ふやす</td>
+</tr>
+<tr>
+<td>ボタン・スイッチ</td>
+<td>入力を ふやす</td>
+<td>IN に ビットを 足す</td>
+</tr>
+<tr>
+<td>ブザー</td>
+<td>音を 鳴らす</td>
+<td>新しい アドレスに「音」の 部品を 作る</td>
+</tr>
+<tr>
+<td>7セグメント LED</td>
+<td>数字を 表示する</td>
+<td>変数の 中身を 数字で 見る</td>
+</tr>
+<tr>
+<td>モーター・サーボ</td>
+<td>ものを 動かす</td>
+<td>ロボットの 頭脳に する</td>
+</tr>
+<tr>
+<td>温度・光センサー</td>
+<td>まわりの ようすを 読む</td>
+<td>センサーの 値で LED の 色を 変える</td>
+</tr>
+</tbody>
+</table>
+<p>TTA-8 に 部品を 足すのは かんたんです。
+<strong>新しい アドレスを 決めて、READ か WRITE で つなぐだけ</strong>。
+それが TTA（運ぶと 動く しくみ）の いいところです。</p>
+<blockquote>
+<p>回路を つなぐ ときは、<strong>USB を ぬいてから</strong>。
+Tang Nano 20K の ピンは <strong>3.3V</strong> です。5V の 部品を つなぐ ときは 大人と いっしょに 調べよう。</p>
+</blockquote>
+<h2 id="チャレンジ-リスト">チャレンジ リスト</h2>
+<ul>
+<li>☐ LED フラッシャーに 新しい 模様を 足す</li>
+<li>☐ 2進数カウンターを 0.1秒ごとに する</li>
+<li>☐ かけ算の 答えが 63 を こえたら どうなるか 予想して ためす</li>
+<li>☐ ALU に「かけ算」の 部品を 足して、アドレス 0x05 で 読めるように する</li>
+<li>☐ ブザーを つないで、ボタンで ドレミを 鳴らす</li>
+<li>☐ 自分で 考えた 命令セットの CPU を 作る</li>
+</ul>
+<p><img alt="おれたちの ぼうけんは これからだ！" src="img/adventure.svg" /></p>
+<h2 id="ブレッドボードが-あればこのボードの-外がわに-色々な-回路を-付けられる">ブレッドボードが あれば、このボードの 外がわに 色々な 回路を 付けられる。</h2>
+<h1 id="おれたちの-ぼうけん電子工作は-これからだ">おれたちの ぼうけん（電子工作）は これからだ！</h1></section><section class="ch" id="ch-appendix"><h1 id="ふろく">ふろく</h1>
+<h2 id="a-こまったとき">A. こまったとき</h2>
+<table>
+<thead>
+<tr>
+<th>こまったこと</th>
+<th>ためすこと</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Zadig に「不明な USB デバイス」しか 出ない</td>
+<td>充電専用ケーブルかも。データ通信できる ケーブルに かえる／パソコン本体の USB に さす／USB-A ⇔ USB-C ケーブルを ためす</td>
+</tr>
+<tr>
+<td><code>1_check_board</code> で ボードが 見つからない</td>
+<td><code>0_setup_driver</code> を やったか 確認。Interface <strong>0</strong> を WinUSB に したか 確認</td>
+</tr>
+<tr>
+<td>書きこめたのに LED が 動かない</td>
+<td>もう一度 <code>2_write_sram</code> を ためす。USB を さしなおす</td>
+</tr>
+<tr>
+<td>なにも おしてないのに LED が 交互に 点滅</td>
+<td>ボタンの 向きの 設定が 逆。<code>hdl/top_tangnano20k.v</code> の <code>BTN_ACTIVE_LOW</code> を 変える（Tang Nano 20K は 0 で 正しい）</td>
+</tr>
+<tr>
+<td>光る 向きが 左右 逆</td>
+<td>ボードの 向きを 確認（「TANG NANO 20K」が 読める 向き）</td>
+</tr>
+<tr>
+<td><code>4_build</code> の ダウンロードが 止まる</td>
+<td>インターネット接続を 確認して もう一度。社内・学校の ネットワークでは 止められることも</td>
+</tr>
+<tr>
+<td>TTA-8 ラボで「くみたて失敗」</td>
+<td>下の 赤い 文字を 読む。わからなければ <a href="#ch-09_ai">9章</a> の やりかたで AI に 聞く</td>
+</tr>
+<tr>
+<td>Windows で 文字が 化ける</td>
+<td>Windows 10 の 古い版では 起きることが あります。Windows Update を してみてください</td>
+</tr>
+</tbody>
+</table>
+<h2 id="b-用語集">B. 用語集</h2>
+<table>
+<thead>
+<tr>
+<th>ことば</th>
+<th>意味</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CPU</td>
+<td>命令を 1つずつ こなす 部品</td>
+</tr>
+<tr>
+<td>FPGA</td>
+<td>設計図を 書きこむと その回路に なる チップ</td>
+</tr>
+<tr>
+<td>ビット（bit）</td>
+<td>0 か 1 が 入る 1マス</td>
+</tr>
+<tr>
+<td>バイト</td>
+<td>8ビット。0〜255</td>
+</tr>
+<tr>
+<td>2進数 / 16進数</td>
+<td>0と1だけの 数 / 0〜9 と A〜F の 数（<code>0x</code> を つける）</td>
+</tr>
+<tr>
+<td>レジスタ</td>
+<td>CPU の 中の 小さな 箱。TTA-8 では V</td>
+</tr>
+<tr>
+<td>PC（プログラムカウンター）</td>
+<td>いま 何番目の 命令かを おぼえる 箱</td>
+</tr>
+<tr>
+<td>ALU</td>
+<td>計算を する 係</td>
+</tr>
+<tr>
+<td>アドレス</td>
+<td>部品や メモリの 番号</td>
+</tr>
+<tr>
+<td>ROM / RAM</td>
+<td>プログラムを しまう ところ / 変数を しまう ところ</td>
+</tr>
+<tr>
+<td>バス</td>
+<td>データの 通り道</td>
+</tr>
+<tr>
+<td>アセンブリ</td>
+<td>CPU の 命令を そのまま 書く ことば</td>
+</tr>
+<tr>
+<td>コンパイル</td>
+<td>BASIC などを 機械語に 翻訳する こと</td>
+</tr>
+<tr>
+<td>Verilog</td>
+<td>回路を 書く ことば</td>
+</tr>
+<tr>
+<td>ビルド</td>
+<td>Verilog と プログラムから 書きこみ用 ファイルを 作る こと</td>
+</tr>
+<tr>
+<td>チューリング完全</td>
+<td>どんな 計算でも できる こと</td>
+</tr>
+</tbody>
+</table>
+<h2 id="c-大人の方へ保護者先生開発者">C. 大人の方へ（保護者・先生・開発者）</h2>
+<h3 id="構成">構成</h3>
+<table>
+<thead>
+<tr>
+<th>パス</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>hdl/tta8.v</code></td>
+<td>CPU 本体（コメント除き 51 行）</td>
+</tr>
+<tr>
+<td><code>hdl/top_tangnano20k.v</code></td>
+<td>ボード用トップ（27MHz → 1kHz ステップ、ボタン同期、LED 反転）</td>
+</tr>
+<tr>
+<td><code>hdl/tangnano20k.cst</code></td>
+<td>ピン割り当て（LED は bit0 = pin 20 … bit5 = pin 15 に反転）</td>
+</tr>
+<tr>
+<td><code>hdl/program.hex</code></td>
+<td>ROM 初期値（256 行の 16 進）</td>
+</tr>
+<tr>
+<td><code>hdl/minimal_cpu.fs</code></td>
+<td>ビルド済みビットストリーム（LED フラッシャー）</td>
+</tr>
+<tr>
+<td><code>tools/</code></td>
+<td><code>tta8asm.js</code>（アセンブラ）、<code>tbasic.js</code>（TinyBASIC改 コンパイラ）、<code>tta8sim.js</code>（エミュレータ）、<code>test.js</code></td>
+</tr>
+<tr>
+<td><code>debugger/</code></td>
+<td>TTA-8 ラボ（<code>src/lab.html</code> を <code>build.py</code> で <code>index.html</code> に 1 ファイル化）</td>
+</tr>
+<tr>
+<td><code>FPGA_Tool/</code></td>
+<td>書き込み・ビルド用スクリプト、openFPGALoader（Windows 版同梱）、Zadig</td>
+</tr>
+<tr>
+<td><code>sim/tb_flasher.v</code></td>
+<td>iverilog 用テストベンチ</td>
+</tr>
+<tr>
+<td><code>docs/architecture.md</code> / <code>docs/tinybasic.md</code></td>
+<td>仕様書・文法書</td>
+</tr>
+</tbody>
+</table>
+<h3 id="コマンドラインでのビルド">コマンドラインでのビルド</h3>
+<p>OSS CAD Suite（yosys / nextpnr-himbaechel / apicula）を使います。<code>FPGA_Tool/*/4_build</code> と同じ内容です。</p>
+<pre><code class="language-sh">cd hdl
+yosys -p &quot;scratchpad -set abc9.xaiger 1; read_verilog top_tangnano20k.v tta8.v; synth_gowin -top top_tangnano20k -json build/top.json&quot;
+nextpnr-himbaechel --json build/top.json --write build/pnr.json \
+  --device GW2AR-LV18QN88C8/I7 --vopt family=GW2A-18C --vopt cst=tangnano20k.cst
+gowin_pack -d GW2A-18C -o minimal_cpu.fs build/pnr.json
+openFPGALoader -b tangnano20k minimal_cpu.fs        # SRAM
+openFPGALoader -b tangnano20k -f minimal_cpu.fs     # Flash
+</code></pre>
+<p><code>scratchpad -set abc9.xaiger 1</code> は、Windows 版 OSS CAD Suite（2026-09-29）で ABC9 が XAIGER2 の読み込み時にアサーションで落ちる問題の回避策です（旧 XAIGER 経路を使う）。</p>
+<p>使用リソース：LUT4 約 700 / 20,736（3%）、DFF 110。ROM は LUT で構成しています。</p>
+<h3 id="プログラムのコンパイルnodejs">プログラムのコンパイル（Node.js）</h3>
+<pre><code class="language-sh">node tools/tbasic.js programs/basic/flasher.bas   # → .asm / .hex / .lst
+node tools/tta8asm.js programs/flasher.asm        # → .hex / .lst
+node tools/test.js                                # コンパイラのテスト
+</code></pre>
+<h3 id="gowin-公式ツールを使う場合">Gowin 公式ツールを使う場合</h3>
+<p>Gowin EDA（Education 版）でも <code>hdl/*.v</code> と <code>hdl/tangnano20k.cst</code> からビルドできます。
+ただし Zadig で WinUSB に置き換えた後は Gowin Programmer から認識しにくくなります。
+戻すときはデバイスマネージャーで該当デバイスのドライバを削除して再接続してください。</p>
+<h3 id="動作確認">動作確認</h3>
+<p>2026-09-29、実機（Tang Nano 20K）で SRAM・Flash 書き込みとも、
+なし／S1／S2／S1+S2 の全モードの動作を確認しています。</p></section></main></div>
+</body></html>

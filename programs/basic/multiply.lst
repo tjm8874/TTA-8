@@ -1,0 +1,31 @@
+00: 12 06   READ  IMM, 6
+02: A0      WRITE $A
+03: 12 07   READ  IMM, 7
+05: A1      WRITE $B
+06: 12 00   READ  IMM, 0
+08: A2      WRITE $C
+09: 21      READ  $B
+0A: 80      WRITE ALU_A
+0B: 12 1E   READ  IMM, L70
+0D: 91      WRITE JZ              ; おなじなら ジャンプ
+0E: 22      READ  $C
+0F: 80      WRITE ALU_A
+10: 20      READ  $A
+11: 81      WRITE ALU_B
+12: 02      READ  ALU_ADD
+13: A2      WRITE $C
+14: 21      READ  $B
+15: 80      WRITE ALU_A
+16: 12 01   READ  IMM, 1
+18: 81      WRITE ALU_B
+19: 04      READ  ALU_SUB
+1A: A1      WRITE $B
+1B: 12 09   READ  IMM, L30
+1D: 90      WRITE JMP
+1E: 22      READ  $C
+1F: FF      WRITE OUT
+20: 12 20   READ  IMM, _H1
+22: 90      WRITE JMP             ; おわり (ここで足ぶみ)
+23: 12 23   READ  IMM, _END
+25: 90      WRITE JMP             ; おわり (ここで足ぶみ)
+; size = 38 bytes

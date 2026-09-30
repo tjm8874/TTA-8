@@ -1,0 +1,1640 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TTA-8 ラボ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;800&family=DotGothic16&display=swap">
+<style>
+/* Layout: Scratch-like workbench. 左=ブロック(プログラム) / 中=CPUの中身 / 右=ボードとミッション */
+:root {
+  --bg: #E9EEFB;       /* 作業台の地 (Scratch の薄い青紫) */
+  --panel: #FFFFFF;
+  --panel-2: #F4F6FD;
+  --line: #D5DAEE;
+  --ink: #3E4466;
+  --ink-soft: #7C82A3;
+  --top: #855CD6;      /* ヘッダー紫 */
+  --top-ink: #FFFFFF;
+  --bus: #C9CFE8;
+  --glow: #FFD500;
+  --c-num: #4C97FF;    /* 数 (IMM) */
+  --c-alu: #59C059;    /* ALU */
+  --c-var: #FF8C1A;    /* 変数 */
+  --c-jump: #FFAB19;   /* ジャンプ */
+  --c-in: #5CB1D6;     /* ボタン */
+  --c-out: #9966FF;    /* LED */
+  --c-hat: #FFBF00;    /* ラベル */
+  --c-rom: #CF63CF;    /* プログラム */
+  --c-core: #FF6680;   /* V */
+  --c-basic: #E64D8C;  /* BASIC の行 */
+  --go: #4CBF56;
+  --stop: #EC5959;
+  --pcb: #1D1F24;
+  --pill-ink: #3E4466;  /* 白いピルの文字 (両テーマ共通) */
+  --led-on: #FFB020;
+  --led-off: #4A3A22;
+  --f-ui: "M PLUS Rounded 1c", "Hiragino Maru Gothic ProN", "Yu Gothic", system-ui, sans-serif;
+  --f-dot: "DotGothic16", "M PLUS Rounded 1c", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #1B1D2C; --panel: #262940; --panel-2: #2E3150; --line: #3D4166;
+    --ink: #ECEEFB; --ink-soft: #A6ABCD; --top: #6B45BF; --bus: #4A4F78;
+    --led-off: #3A2E1D; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #1B1D2C; --panel: #262940; --panel-2: #2E3150; --line: #3D4166;
+  --ink: #ECEEFB; --ink-soft: #A6ABCD; --top: #6B45BF; --bus: #4A4F78;
+  --led-off: #3A2E1D; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f-ui); font-size: 15px; }
+button { font-family: inherit; color: inherit; }
+button:focus-visible, select:focus-visible, textarea:focus-visible, .blk:focus-visible { outline: 3px solid var(--glow); outline-offset: 2px; }
+
+/* ---------- ヘッダー ---------- */
+.top {
+  background: var(--top); color: var(--top-ink);
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px;
+  padding-block: 10px; padding-inline: 16px;
+}
+.logo { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 20px; letter-spacing: .02em; margin-right: 6px; }
+.logo small { font-weight: 700; font-size: 12px; opacity: .8; }
+.ctrl { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.btn {
+  border: 0; border-radius: 12px; padding: 8px 12px; min-height: 42px;
+  display: inline-flex; align-items: center; gap: 6px; font-weight: 800; font-size: 14px; cursor: pointer;
+  background: rgba(255,255,255,.16); color: var(--top-ink);
+  transition: transform .08s, background .15s;
+}
+.btn:hover { background: rgba(255,255,255,.28); }
+.btn:active { transform: scale(.94); }
+.btn svg { width: 24px; height: 24px; flex: none; }
+.btn.flag.on { background: rgba(255,255,255,.9); color: var(--top); }
+.speed { display: inline-flex; background: rgba(0,0,0,.18); border-radius: 12px; padding: 3px; }
+.speed button { border: 0; background: transparent; color: var(--top-ink); font-weight: 800; font-size: 13px; padding: 7px 10px; border-radius: 9px; cursor: pointer; }
+.speed button[aria-pressed="true"] { background: var(--panel); color: var(--top); }
+.stats { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+.stat { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.1; }
+.stat b { font-family: var(--f-dot); font-size: 22px; font-weight: 400; font-variant-numeric: tabular-nums; }
+.stat span { font-size: 11px; opacity: .85; letter-spacing: .04em; }
+.starbar { width: 90px; height: 8px; border-radius: 4px; background: rgba(0,0,0,.25); overflow: hidden; margin-top: 3px; }
+.starbar i { display: block; height: 100%; width: 0; background: var(--glow); transition: width .6s cubic-bezier(.3,1.6,.5,1); }
+
+/* ---------- 2カラム (左: プログラム / 右: ボード・CPU・ミッション) ---------- */
+.app {
+  --prog-w: 440px;
+  display: grid; column-gap: 4px; row-gap: 14px;
+  grid-template-columns: var(--prog-w) 12px minmax(0, 1fr);
+  padding-block: 14px; padding-inline: 16px; align-items: start;
+}
+.stage { display: grid; gap: 14px; min-width: 0; }
+.split {
+  align-self: stretch; cursor: col-resize; border-radius: 6px; position: relative; touch-action: none;
+}
+.split::before {
+  content: ""; position: absolute; left: 50%; top: 50%; width: 4px; height: 56px; transform: translate(-50%, -50%);
+  border-radius: 2px; background: var(--line); transition: background .15s, height .15s;
+}
+.split:hover::before, .split.drag::before, .split:focus-visible::before { background: var(--c-num); height: 96px; }
+.split:focus-visible { outline: none; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; min-width: 0; }
+.card h2 { margin: 0; font-size: 14px; font-weight: 800; letter-spacing: .04em; display: flex; align-items: center; gap: 8px; }
+.card-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+
+/* ---------- プログラム (左) ---------- */
+.prog { display: flex; flex-direction: column; height: calc(100vh - 110px); min-height: 480px; position: sticky; top: 14px; }
+.tabs { display: flex; gap: 4px; }
+.tabs button { border: 0; background: var(--panel-2); color: var(--ink-soft); font-weight: 800; font-size: 13px; padding: 6px 10px; border-radius: 8px; cursor: pointer; }
+.tabs button[aria-selected="true"] { background: var(--c-num); color: #fff; }
+.tabs button:disabled { opacity: .5; cursor: not-allowed; }
+.prog-tools { display: flex; gap: 6px; padding: 8px 12px; border-bottom: 1px solid var(--line); align-items: center; flex-wrap: wrap; }
+select, .tool { font-family: inherit; font-size: 13px; font-weight: 700; border: 1px solid var(--line); background: var(--panel-2); color: var(--ink); border-radius: 8px; padding: 6px 8px; }
+.tool { cursor: pointer; }
+.tool.primary { background: var(--c-alu); color: #fff; border-color: transparent; }
+.size { margin-left: auto; font-family: var(--f-dot); font-size: 13px; color: var(--ink-soft); }
+.blocks { overflow-y: auto; flex: 1; padding: 12px 10px 40px 6px; }
+.row { display: grid; grid-template-columns: 52px minmax(0, 1fr); align-items: stretch; }
+.gut { font-family: var(--f-dot); font-size: 12px; color: var(--ink-soft); text-align: right; padding: 8px 8px 0 0; cursor: pointer; position: relative; line-height: 1.15; user-select: none; }
+.gut small { display: block; font-size: 10px; opacity: .8; }
+.row.bp .gut::before { content: ""; position: absolute; left: 2px; top: 10px; width: 11px; height: 11px; border-radius: 50%; background: var(--stop); box-shadow: 0 0 0 2px var(--panel); }
+.blk {
+  position: relative; color: #fff; font-weight: 800; font-size: 14px;
+  padding: 8px 12px 9px; border-radius: 6px; margin-bottom: 0;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-height: 40px;
+  box-shadow: inset 0 -3px 0 rgba(0,0,0,.15);
+  transition: transform .12s;
+}
+.blk::before { /* 上のくぼみ */
+  content: ""; position: absolute; left: 16px; top: 0; width: 24px; height: 5px;
+  background: var(--panel); border-radius: 0 0 5px 5px;
+}
+.blk::after { /* 下のでっぱり */
+  content: ""; position: absolute; left: 16px; bottom: -5px; width: 24px; height: 5px;
+  background: inherit; border-radius: 0 0 5px 5px; z-index: 1; box-shadow: inset 0 -2px 0 rgba(0,0,0,.15);
+}
+.blk.num { background: var(--c-num); } .blk.alu { background: var(--c-alu); } .blk.var { background: var(--c-var); }
+.blk.jump { background: var(--c-jump); } .blk.in { background: var(--c-in); } .blk.out { background: var(--c-out); }
+.blk.other { background: #9AA0B8; }
+.hat {
+  background: var(--c-hat); color: #fff; font-weight: 800; font-size: 14px; padding: 16px 12px 8px;
+  border-radius: 22px 22px 6px 6px; position: relative; margin-top: 14px; display: flex; gap: 6px; align-items: center;
+  box-shadow: inset 0 -3px 0 rgba(0,0,0,.12); max-width: 230px;
+}
+.hat::after { content: ""; position: absolute; left: 16px; bottom: -5px; width: 24px; height: 5px; background: inherit; border-radius: 0 0 5px 5px; z-index: 1; }
+.verb { font-size: 12px; background: rgba(0,0,0,.18); border-radius: 999px; padding: 2px 8px; }
+.pill { background: #fff; color: var(--pill-ink); border-radius: 999px; padding: 2px 10px; font-weight: 800; min-width: 28px; text-align: center; }
+.pill.dark { background: rgba(0,0,0,.2); color: #fff; }
+.note { flex-basis: 100%; font-size: 11px; font-weight: 700; opacity: .9; }
+.row.now .blk { box-shadow: 0 0 0 3px var(--glow), 0 0 18px var(--glow), inset 0 -3px 0 rgba(0,0,0,.15); transform: translateX(4px); z-index: 2; }
+.row.now .gut { color: var(--ink); font-weight: 800; }
+.editor { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.editor textarea {
+  flex: 1; resize: none; border: 0; padding: 12px; font-family: var(--f-dot); font-size: 14px; line-height: 1.5;
+  background: var(--panel); color: var(--ink); min-height: 300px; tab-size: 8;
+}
+.errs { color: var(--stop); font-size: 13px; font-weight: 700; padding: 8px 12px; border-top: 1px solid var(--line); }
+.errs:empty { display: none; }
+.bview { flex: 1; overflow-y: auto; padding: 10px 8px 30px; font-family: var(--f-dot); font-size: 15px; min-height: 0; }
+.bl { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 10px; padding: 5px 8px; border-radius: 8px; cursor: pointer; position: relative; line-height: 1.5; }
+.bl:hover { background: var(--panel-2); }
+.bl .no { color: var(--ink-soft); text-align: right; }
+.bl .code { white-space: pre-wrap; overflow-wrap: anywhere; }
+.bl.now { background: color-mix(in srgb, var(--glow) 35%, var(--panel)); box-shadow: 0 0 0 2px var(--glow); }
+.bl.bp::before { content: ""; position: absolute; left: 4px; top: 11px; width: 10px; height: 10px; border-radius: 50%; background: var(--stop); }
+.bl .rem { color: var(--ink-soft); }
+.k-kw { color: var(--c-basic); } .k-var { color: var(--c-var); } .k-num { color: var(--c-num); }
+.bmsg { padding: 20px 12px; color: var(--ink-soft); font-family: var(--f-ui); font-weight: 700; line-height: 1.7; }
+.bhdr {
+  background: var(--c-basic); color: #fff; font-family: var(--f-dot); font-size: 15px; padding: 14px 12px 7px;
+  border-radius: 20px 20px 6px 6px; position: relative; margin-top: 16px; box-shadow: inset 0 -3px 0 rgba(0,0,0,.14);
+  overflow-wrap: anywhere;
+}
+.bhdr::after { content: ""; position: absolute; left: 16px; bottom: -5px; width: 24px; height: 5px; background: inherit; border-radius: 0 0 5px 5px; z-index: 1; }
+.bhdr .n { opacity: .8; margin-right: 8px; }
+.bhdr.rem { background: var(--panel-2); color: var(--ink-soft); box-shadow: none; padding: 6px 12px; border-radius: 8px; margin-top: 10px; }
+.bhdr.rem::after { display: none; }
+.row.nowb .bhdr { box-shadow: 0 0 0 3px var(--glow), inset 0 -3px 0 rgba(0,0,0,.14); }
+.bline { display: inline-block; font-family: var(--f-dot); font-weight: 400; background: var(--c-basic); color: #fff; border-radius: 6px; padding: 0 7px; margin-bottom: 4px; font-size: 14px; }
+.asmnote { font-size: 12px; font-weight: 700; color: var(--ink-soft); padding: 8px 12px; border-bottom: 1px solid var(--line); }
+
+/* ---------- CPU 図 (中) ---------- */
+.cpu svg { display: block; width: 100%; height: auto; }
+.u-box { fill: var(--panel); stroke-width: 3; transition: filter .15s; }
+.u-title { font-family: var(--f-ui); font-weight: 800; font-size: 12px; }
+.u-val { font-family: var(--f-dot); font-size: 20px; fill: var(--ink); }
+.u-sub { font-family: var(--f-dot); font-size: 11px; fill: var(--ink-soft); }
+.u.hot .u-box { filter: drop-shadow(0 0 6px var(--glow)) drop-shadow(0 0 2px var(--glow)); stroke-width: 5; }
+.stub { stroke: var(--bus); stroke-width: 6; stroke-linecap: round; }
+.busline { stroke: var(--bus); stroke-width: 14; stroke-linecap: round; }
+.buslabel { font-family: var(--f-ui); font-size: 11px; font-weight: 800; fill: var(--ink-soft); }
+.cell rect { fill: var(--panel-2); stroke: var(--line); }
+.cell.hot rect { fill: var(--c-var); stroke: var(--c-var); }
+.cell.hot text { fill: #fff; }
+.cell text { font-family: var(--f-dot); fill: var(--ink); }
+.bit rect { stroke: var(--line); fill: var(--panel-2); }
+.bit.one rect { fill: var(--c-rom); stroke: var(--c-rom); }
+.bit.one text { fill: #fff; }
+.bit text { font-family: var(--f-dot); font-size: 13px; fill: var(--ink); }
+.pop { font-family: var(--f-ui); font-weight: 800; font-size: 22px; fill: var(--stop); paint-order: stroke; stroke: var(--panel); stroke-width: 5; }
+.talk { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 10px; align-items: center; padding: 6px 14px 14px; }
+.bubble { position: relative; background: var(--panel-2); border: 2px solid var(--line); border-radius: 16px; padding: 12px 14px; font-weight: 700; line-height: 1.6; min-height: 64px; }
+.bubble::before { content: ""; position: absolute; left: -10px; top: 24px; border: 8px solid transparent; border-right-color: var(--line); border-left: 0; }
+.bubble b { color: var(--c-core); font-family: var(--f-dot); font-weight: 400; font-size: 17px; }
+.pico { width: 76px; height: 76px; }
+.pico .eye { animation: blink 4s infinite; transform-origin: center; transform-box: fill-box; }
+@keyframes blink { 0%, 94%, 100% { transform: scaleY(1); } 97% { transform: scaleY(.1); } }
+.pico.jump { animation: hop .35s; }
+@keyframes hop { 40% { transform: translateY(-10px) rotate(-6deg); } }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; padding: 0 14px 12px; font-size: 12px; font-weight: 700; color: var(--ink-soft); }
+.legend span { display: inline-flex; align-items: center; gap: 5px; }
+
+/* ---------- ボード & ミッション (右) ---------- */
+.board-body { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; padding: 8px 12px 12px; }
+.board svg { display: block; flex: 1 1 320px; max-width: 560px; width: 100%; height: auto; }
+.board-ctl { flex: 1 1 180px; display: grid; gap: 10px; font-size: 13px; font-weight: 700; line-height: 1.6; }
+.board-ctl kbd { font-family: var(--f-dot); background: var(--panel-2); border: 1px solid var(--line); border-radius: 5px; padding: 0 6px; }
+.pbtn { cursor: pointer; outline: none; }
+.pbtn .hit { fill: transparent; }
+.pbtn:hover circle.cap { fill: #F2F2F5; }
+.pbtn:focus-visible .hit { stroke: var(--glow); stroke-width: 3; }
+.pbtn .ring { fill: none; stroke: var(--glow); stroke-width: 3; transform-box: fill-box; transform-origin: center; animation: ring 1.4s ease-out infinite; pointer-events: none; }
+#brd.tried .ring { display: none; }
+@keyframes ring { 0% { transform: scale(.7); opacity: 1; } 100% { transform: scale(1.6); opacity: 0; } }
+.pbtn circle.cap { fill: #D9D9DE; stroke: #8E8E98; stroke-width: 2; transition: fill .08s; }
+.pbtn.down circle.cap { fill: var(--glow); }
+.pbtn.down rect.base { transform: translateY(1px); }
+.led-glow { transition: opacity .05s; }
+.lock { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--ink-soft); }
+.mis { list-style: none; margin: 0; padding: 10px 12px 12px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.mis li { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 8px; align-items: center; padding: 7px 8px; border-radius: 10px; background: var(--panel-2); font-size: 13px; font-weight: 700; }
+.mis li svg { width: 26px; height: 26px; }
+.mis li .star { fill: var(--line); transition: fill .3s; }
+.mis li.done { background: color-mix(in srgb, var(--glow) 22%, var(--panel)); }
+.mis li.done .star { fill: var(--glow); stroke: #D9A400; }
+.mis li.done span { text-decoration: line-through; text-decoration-thickness: 2px; opacity: .75; }
+.mis .prog-n { font-family: var(--f-dot); font-size: 12px; color: var(--ink-soft); }
+
+/* ---------- ごほうび ---------- */
+#confetti { position: fixed; inset: 0; pointer-events: none; z-index: 50; width: 100%; height: 100%; }
+.toast {
+  position: fixed; left: 50%; top: 84px; transform: translate(-50%, -30px) scale(.7); opacity: 0; z-index: 60;
+  background: var(--panel); border: 3px solid var(--glow); border-radius: 18px; padding: 12px 18px 12px 12px;
+  display: flex; gap: 12px; align-items: center; box-shadow: 0 12px 30px rgba(0,0,0,.25); pointer-events: none;
+  transition: transform .35s cubic-bezier(.3,1.7,.5,1), opacity .2s; max-width: calc(100% - 32px);
+}
+.toast.show { transform: translate(-50%, 0) scale(1); opacity: 1; }
+.toast svg { width: 48px; height: 48px; flex: none; }
+.toast b { display: block; font-size: 18px; font-weight: 800; }
+.toast span { font-size: 13px; font-weight: 700; color: var(--ink-soft); }
+.combo {
+  position: fixed; right: 24px; bottom: 24px; z-index: 40; font-family: var(--f-dot); font-size: 34px; color: var(--c-core);
+  paint-order: stroke; -webkit-text-stroke: 1px var(--panel); pointer-events: none; opacity: 0; transform: scale(.6);
+  transition: opacity .2s, transform .25s cubic-bezier(.3,1.8,.5,1); text-shadow: 0 3px 0 var(--panel);
+}
+.combo.show { opacity: 1; transform: scale(1); }
+
+@media (max-width: 760px) {
+  .app { grid-template-columns: minmax(0, 1fr); }
+  .split { display: none; }
+  .mis { grid-template-columns: minmax(0, 1fr); }
+  .prog { position: static; height: 460px; min-height: 0; }
+  .stats { margin-left: 0; }
+  .logo small { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+
+
+<header class="top">
+  <div class="logo">
+    <svg width="34" height="34" viewBox="0 0 40 40" aria-hidden="true"><rect x="6" y="6" width="28" height="28" rx="7" fill="#fff"/><g fill="#fff"><rect x="11" y="1" width="4" height="6" rx="1"/><rect x="18" y="1" width="4" height="6" rx="1"/><rect x="25" y="1" width="4" height="6" rx="1"/><rect x="11" y="33" width="4" height="6" rx="1"/><rect x="18" y="33" width="4" height="6" rx="1"/><rect x="25" y="33" width="4" height="6" rx="1"/></g><text x="20" y="25" text-anchor="middle" font-family="DotGothic16, monospace" font-size="12" fill="#855CD6">8</text></svg>
+    TTA-8 ラボ <small>READ と WRITE だけの CPU</small>
+  </div>
+  <div class="ctrl">
+    <button class="btn flag" id="bRun" title="スタート (スペース)"><svg viewBox="0 0 24 24"><path d="M5 3v18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M6 4c3-1.6 5.5 1.6 8.5 0S18 3 19 3.6v8.8c-1 .6-2.5-.6-4.5.4s-5.5-1.8-8.5-.2z" fill="#4CBF56" stroke="#2E8B37" stroke-width="1.2"/></svg>スタート</button>
+    <button class="btn" id="bStop" title="とめる"><svg viewBox="0 0 24 24"><path d="M8 2h8l6 6v8l-6 6H8l-6-6V8z" fill="#EC5959" stroke="#B83B3B" stroke-width="1.2"/></svg>とめる</button>
+    <button class="btn" id="bStep" title="1つすすむ (→キー)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5l7 7-7 7M13 5l7 7-7 7"/></svg>1つすすむ</button>
+    <button class="btn" id="bReset" title="さいしょから"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v5h5"/></svg>さいしょから</button>
+    <div class="speed" role="group" aria-label="はやさ">
+      <button data-sp="0" aria-pressed="true">かめ</button>
+      <button data-sp="1" aria-pressed="false">うさぎ</button>
+      <button data-sp="2" aria-pressed="false">ロケット</button>
+    </div>
+    <button class="btn" id="bSound" aria-pressed="true" title="音"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9z" fill="currentColor"/><path id="waves" d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg></button>
+  </div>
+  <div class="stats">
+    <div class="stat"><b id="sSteps">0</b><span>うごいた命令</span></div>
+    <div class="stat"><b id="sStars">0/8</b><span>ミッション</span><div class="starbar"><i id="sBar"></i></div></div>
+  </div>
+</header>
+
+<main class="app">
+  <!-- ===== プログラム ===== -->
+  <section class="card prog" aria-label="プログラム">
+    <div class="card-h">
+      <h2><span class="dot" style="background:var(--c-rom)"></span>プログラム</h2>
+      <div class="tabs" role="tablist">
+        <button role="tab" id="tBlocks" aria-selected="true">ブロック</button>
+        <button role="tab" id="tBasic" aria-selected="false">BASIC</button>
+        <button role="tab" id="tText" aria-selected="false">アセンブリ</button>
+      </div>
+    </div>
+    <div class="prog-tools">
+      <select id="sample" aria-label="サンプル"></select>
+      <span class="size" id="size">0 / 256 バイト</span>
+      <button class="tool" id="bSave" title="ボードに書きこむための program.hex を保存する">ボード用に保存</button>
+    </div>
+    <div class="blocks" id="blocks" role="tabpanel"></div>
+    <div class="editor" id="basic" role="tabpanel" hidden>
+      <div class="bview" id="bview"></div>
+      <textarea id="bsrc" spellcheck="false" aria-label="BASIC のソース" hidden></textarea>
+      <div class="prog-tools"><button class="tool" id="bEdit">かきかえる</button><button class="tool primary" id="bComp">くみたてる</button><span class="size" id="bnote">行をクリックで ブレークポイント</span></div>
+      <div class="errs" id="berrs"></div>
+    </div>
+    <div class="editor" id="editor" role="tabpanel" hidden>
+      <div class="asmnote" id="asmnote" hidden>BASIC から自動で作ったアセンブリだよ。書きかえて「くみたてる」をおすと、アセンブリのプログラムとして動くよ。</div>
+      <textarea id="src" spellcheck="false" aria-label="アセンブリのソース"></textarea>
+      <div class="prog-tools"><button class="tool primary" id="bAsm">くみたてる</button><span class="size">書きかえたら おしてね</span></div>
+      <div class="errs" id="errs"></div>
+    </div>
+  </section>
+
+  <div class="split" id="split" role="separator" aria-orientation="vertical" aria-label="プログラム欄の幅 (ドラッグ / ← → キー / ダブルクリックで元にもどす)" tabindex="0"></div>
+
+  <div class="stage">
+    <!-- ===== ボード ===== -->
+    <section class="card board" aria-label="ボード">
+      <div class="card-h"><h2><span class="dot" style="background:var(--led-on)"></span>Tang Nano 20K</h2><span class="size">もぎボード</span></div>
+      <div class="board-body">
+        <svg id="brd" viewBox="0 0 320 170" role="group" aria-label="ボードの LED とボタン"></svg>
+        <div class="board-ctl">
+          <div>ボードの <b>S1</b>・<b>S2</b> を クリックして おしてね。<br>キーボードの <kbd>1</kbd>・<kbd>2</kbd> でも おせるよ。</div>
+          <label class="lock"><input type="checkbox" id="lock"> ボタンを おしたまま にする</label>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== CPU ===== -->
+    <section class="card cpu" aria-label="CPUの中身">
+      <div class="card-h"><h2><span class="dot" style="background:var(--c-core)"></span>CPU の中身</h2><span class="size" id="clock">ステップ 0</span></div>
+      <svg id="dia" viewBox="0 0 640 440" role="img" aria-label="CPU のブロック図"></svg>
+      <div class="talk">
+        <svg class="pico" id="pico" viewBox="0 0 80 80" aria-hidden="true">
+          <g fill="#8E94B5"><rect x="18" y="4" width="6" height="10" rx="2"/><rect x="37" y="4" width="6" height="10" rx="2"/><rect x="56" y="4" width="6" height="10" rx="2"/><rect x="18" y="66" width="6" height="10" rx="2"/><rect x="37" y="66" width="6" height="10" rx="2"/><rect x="56" y="66" width="6" height="10" rx="2"/><rect x="2" y="30" width="10" height="6" rx="2"/><rect x="68" y="30" width="10" height="6" rx="2"/></g>
+          <rect x="10" y="12" width="60" height="56" rx="14" fill="#855CD6"/>
+          <rect x="16" y="18" width="48" height="44" rx="10" fill="#9B7BE0"/>
+          <ellipse class="eye" cx="30" cy="36" rx="6" ry="8" fill="#fff"/><ellipse class="eye" cx="50" cy="36" rx="6" ry="8" fill="#fff"/>
+          <circle cx="31" cy="38" r="3" fill="#2B2250"/><circle cx="51" cy="38" r="3" fill="#2B2250"/>
+          <path d="M31 50q9 7 18 0" stroke="#2B2250" stroke-width="3" fill="none" stroke-linecap="round"/>
+          <circle cx="22" cy="48" r="3.5" fill="#FF8FB1" opacity=".8"/><circle cx="58" cy="48" r="3.5" fill="#FF8FB1" opacity=".8"/>
+        </svg>
+        <div class="bubble" id="say" aria-live="polite">ぼくは ピコ！ みどりの旗の「スタート」か「1つすすむ」をおしてね。</div>
+      </div>
+      <div class="legend">
+        <span>玉が <b>部品 → V</b> に走ったら「よむ (READ)」</span>
+        <span>玉が <b>V → 部品</b> に走ったら「かく (WRITE)」</span>
+        <span>ALU とは Arithmetic Logic Unit ＝ CPU の中で計算をする部分</span>
+      </div>
+    </section>
+
+    <!-- ===== ミッション ===== -->
+    <section class="card" aria-label="ミッション">
+      <div class="card-h"><h2><span class="dot" style="background:var(--glow)"></span>ミッション</h2><span class="size" id="misN">0 / 8</span></div>
+      <ul class="mis" id="mis"></ul>
+    </section>
+  </div>
+</main>
+
+<canvas id="confetti"></canvas>
+<div class="toast" id="toast" role="status"><svg viewBox="0 0 48 48"><path d="M24 3l6.2 13.3 14.6 1.6-10.9 9.8 3.1 14.4L24 34.8 11 42.1l3.1-14.4L3.2 17.9l14.6-1.6z" fill="#FFD500" stroke="#D9A400" stroke-width="2" stroke-linejoin="round"/></svg><div><b id="toastT">ミッションクリア！</b><span id="toastS"></span></div></div>
+<div class="combo" id="combo">COMBO x2</div>
+
+<script>// ============================================================
+//  TTA-8 アセンブラ (ブラウザでも Node.js でも動く)
+//
+//  書き方:
+//    ; コメント
+//    LABEL:            ラベル
+//    READ  名前        (名前 = ALU_A ALU_B ALU_ADD ALU_NAND ALU_SUB IN 変数)
+//    WRITE 名前        (名前 = ALU_A ALU_B JMP JZ OUT 変数)
+//    READ  IMM, 値     定数を V に入れる (値 = 数 / ラベル)
+//    変数              $A-$Z, $0-$5 (RAM 0x20-0x3F, 全部で32個)
+//    .equ  名前 値     名前に数をつける
+//
+//  使い方 (Node):  node tta8asm.js prog.asm  -> prog.hex / prog.lst
+// ============================================================
+(function (root) {
+  'use strict';
+
+  const PORTS = {
+    ALU_A: 0x00, ALU_B: 0x01, ALU_ADD: 0x02, ALU_NAND: 0x03, ALU_SUB: 0x04,
+    JMP: 0x10, JZ: 0x11, IMM: 0x12,
+    IN: 0x7e, OUT: 0x7f,
+  };
+  // 変数: $A-$Z = 0x20-0x39, $0-$5 = 0x3A-0x3F
+  'ABCDEFGHIJKLMNOPQRSTUVWXYZ012345'.split('').forEach((c, i) => {
+    PORTS['$' + c] = 0x20 + i;
+  });
+
+  function parseNum(s) {
+    if (/^0x[0-9a-f]+$/i.test(s)) return parseInt(s, 16);
+    if (/^0b[01]+$/i.test(s)) return parseInt(s.slice(2), 2);
+    if (/^-?\d+$/.test(s)) return parseInt(s, 10);
+    return null;
+  }
+
+  function assemble(src) {
+    const syms = Object.assign({}, PORTS);
+    const lines = src.split(/\r?\n/);
+    const items = [];            // {line, op, arg, imm, addr}
+    const errors = [];
+    const labels = {};           // rom 番地 -> [ラベル名]
+    let pc = 0;
+
+    // ---- 1回目: ラベルと変数の場所を決める ----
+    lines.forEach((raw, i) => {
+      const line = raw.replace(/;.*$/, '').trim();
+      const cm = raw.match(/;\s*(.*)$/);
+      const comment = cm ? cm[1].trim() : '';
+      if (!line) return;
+      let rest = line;
+      const m = rest.match(/^([A-Za-z_]\w*):\s*(.*)$/);
+      if (m) {
+        syms[m[1].toUpperCase()] = pc; rest = m[2];
+        (labels[pc] = labels[pc] || []).push(m[1].toUpperCase());
+      }
+      if (!rest) return;
+      const t = rest.split(/[\s,]+/).filter(Boolean);
+      const op = t[0].toUpperCase();
+      if (op === '.EQU') {
+        syms[t[1].toUpperCase()] = t[2];   // あとで解決
+      } else if (op === 'READ' || op === 'WRITE') {
+        const arg = (t[1] || '').toUpperCase();
+        const it = { line: i + 1, src: raw, op, arg, addr: pc, comment };
+        if (op === 'READ' && arg === 'IMM') { it.imm = t[2]; pc += 2; }
+        else pc += 1;
+        items.push(it);
+      } else {
+        errors.push(`${i + 1}: わからない命令 "${t[0]}"`);
+      }
+    });
+
+    function value(s, line) {
+      if (s === undefined) { errors.push(`${line}: 値がない`); return 0; }
+      let n = parseNum(s);
+      if (n !== null) return n & 0xff;
+      let v = syms[s.toUpperCase()];
+      if (typeof v === 'string') v = value(v, line);
+      if (v === undefined) { errors.push(`${line}: "${s}" が見つからない`); return 0; }
+      return v & 0xff;
+    }
+
+    // ---- 2回目: 機械語にする ----
+    const rom = new Array(256).fill(0);
+    const map = [];              // rom 番地 -> ソース行
+    for (const it of items) {
+      const a = value(it.arg, it.line);
+      if (a > 0x7f) errors.push(`${it.line}: アドレスが 0x7F をこえている`);
+      const code = (it.op === 'WRITE' ? 0x80 : 0) | (a & 0x7f);
+      rom[it.addr] = code; map[it.addr] = it.line; it.port = a & 0x7f;
+      it.bytes = [code];
+      if (it.imm !== undefined) {
+        const v = value(it.imm, it.line);
+        rom[it.addr + 1] = v; it.bytes.push(v); it.value = v;
+      }
+    }
+    if (pc > 256) errors.push(`プログラムが 256 バイトをこえた (${pc})`);
+
+    const hex2 = (n) => n.toString(16).toUpperCase().padStart(2, '0');
+    const hex = rom.map(hex2).join('\n') + '\n';
+    const lst = items.map(it =>
+      `${hex2(it.addr)}: ${it.bytes.map(hex2).join(' ').padEnd(6)}  ${it.src.trim()}`
+    ).join('\n') + `\n; size = ${pc} bytes\n`;
+
+    return { rom, hex, lst, size: pc, symbols: syms, lineOf: map, items, labels, errors };
+  }
+
+  const api = { assemble, PORTS };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else root.TTA8ASM = api;
+
+  // ---- Node から直接呼ばれたとき ----
+  if (typeof require !== 'undefined' && typeof module !== 'undefined' && require.main === module) {
+    const fs = require('fs'), path = require('path');
+    const file = process.argv[2];
+    if (!file) { console.log('usage: node tta8asm.js prog.asm'); process.exit(1); }
+    const r = assemble(fs.readFileSync(file, 'utf8'));
+    if (r.errors.length) { r.errors.forEach(e => console.error('ERROR ' + e)); process.exit(1); }
+    const base = file.replace(/\.asm$/i, '');
+    fs.writeFileSync(base + '.hex', r.hex);
+    fs.writeFileSync(base + '.lst', r.lst);
+    console.log(`${path.basename(file)}: ${r.size} bytes -> ${path.basename(base)}.hex`);
+  }
+})(this);
+
+// ============================================================
+//  TTA-8 エミュレータ (hdl/tta8.v と同じ動き)
+//  ブラウザでも Node.js でも動く
+// ============================================================
+(function (root) {
+  'use strict';
+  function create() {
+    return { pc: 0, v: 0, a: 0, b: 0, ram: new Uint8Array(32), led: 0, btn: 0 };
+  }
+  function reset(cpu) {
+    cpu.pc = 0; cpu.v = 0; cpu.a = 0; cpu.b = 0; cpu.led = 0; cpu.ram.fill(0);
+  }
+  // 1命令すすめて、何がおきたかを返す
+  function step(cpu, rom) {
+    const inst = rom[cpu.pc], write = inst >> 7, ad = inst & 0x7f;
+    const ev = { pc: cpu.pc, inst, write: !!write, addr: ad, a: cpu.a, b: cpu.b,
+                 value: 0, jump: false, jz: null, ledBefore: cpu.led };
+    let npc = (cpu.pc + 1) & 255;
+    if (!write) {                                        // READ
+      let r;
+      switch (ad) {
+        case 0x00: r = cpu.a; break;                     // ALU_A
+        case 0x01: r = cpu.b; break;                     // ALU_B
+        case 0x02: r = (cpu.a + cpu.b) & 255; break;     // ALU_ADD
+        case 0x03: r = (~(cpu.a & cpu.b)) & 255; break;  // ALU_NAND
+        case 0x04: r = (cpu.a - cpu.b) & 255; break;     // ALU_SUB
+        case 0x12: r = rom[(cpu.pc + 1) & 255]; npc = (cpu.pc + 2) & 255; break;  // IMM
+        case 0x7e: r = cpu.btn; break;                   // IN
+        default:   r = (ad >> 5) === 1 ? cpu.ram[ad & 31] : 0;
+      }
+      cpu.v = r; ev.value = r;
+    } else {                                             // WRITE
+      const v = cpu.v; ev.value = v;
+      switch (ad) {
+        case 0x00: cpu.a = v; break;
+        case 0x01: cpu.b = v; break;
+        case 0x10: npc = v; ev.jump = true; break;       // JMP
+        case 0x11: ev.jz = cpu.a === 0; if (ev.jz) { npc = v; ev.jump = true; } break;  // JZ
+        case 0x7f: cpu.led = v & 63; break;              // OUT
+        default:   if ((ad >> 5) === 1) cpu.ram[ad & 31] = v;
+      }
+    }
+    cpu.pc = npc;
+    return ev;
+  }
+  const api = { create, reset, step };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else root.TTA8SIM = api;
+})(this);
+
+// ============================================================
+//  TinyBASIC改 コンパイラ  (TinyBASIC改 -> TTA-8 アセンブリ)
+//  ブラウザでも Node.js でも動く
+//
+//  使い方 (Node):  node tbasic.js prog.bas  -> prog.asm / prog.hex / prog.lst
+//
+//  文法 (くわしくは docs/tinybasic.md)
+//    10 REM コメント
+//    20 $A = 式              (LET $A = 式 でもよい)
+//    30 OUT 式               LED に出す
+//    40 POKE 番地, 式        番地に書く (番地は数だけ)
+//    50 IF 式 = 式 THEN GOTO 行   (<> も使える。THEN のあとに文も書ける)
+//    60 GOTO 行 / GOSUB 行 / RETURN
+//    70 WAIT 式              式 x 0.01秒 待つ
+//    80 END                  おわり
+//    式 : 項 [ (+ | - | AND | OR | NAND) 項 ] ...
+//    項 : 数(0-255, 0b.., 0x..) | $A-$Z $0-$5 | IN | PEEK(番地)
+// ============================================================
+(function (root) {
+  'use strict';
+
+  const VARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ012345'.split('').map(c => '$' + c);
+  const TMP = '$3', WCNT = '$4', RET = '$5';        // コンパイラが使う変数
+  const TOKEN = /\s*(\$[A-Za-z0-9]|0x[0-9A-Fa-f]+|0b[01]+|\d+|<>|[=+\-,():]|[A-Za-z_]+|\S)/y;
+
+  function tokenize(s) {
+    const out = [];
+    TOKEN.lastIndex = 0;
+    let m;
+    while (TOKEN.lastIndex < s.length && (m = TOKEN.exec(s))) {
+      if (m[1] === undefined) break;
+      out.push(/^[A-Za-z_$]/.test(m[1]) ? m[1].toUpperCase() : m[1]);
+    }
+    return out;
+  }
+
+  function compile(src) {
+    const errors = [];
+    const lines = [];                               // {no, text, srcLine}
+    src.split(/\r?\n/).forEach((raw, i) => {
+      if (!raw.trim()) return;
+      const m = raw.match(/^\s*(\d+)\s*(.*)$/);
+      if (!m) { errors.push(`${i + 1}ぎょう目: 行番号 (10, 20 など) で はじめてね`); return; }
+      const no = parseInt(m[1], 10);
+      if (lines.length && no <= lines[lines.length - 1].no)
+        errors.push(`${no}行: 行番号は 前の行 (${lines[lines.length - 1].no}) より大きくしてね`);
+      lines.push({ no, text: m[2].trim(), srcLine: i + 1 });
+    });
+    const lineSet = new Set(lines.map(l => l.no));
+
+    const asm = [];                                 // アセンブリの行
+    const basicOf = [];                             // アセンブリの行番号(1-) -> BASIC 行番号
+    let cur = null, uid = 0;
+    const used = { tmp: false, wait: false, gosub: false };
+    const userVars = new Set();
+    const emit = (text, basic = cur) => { asm.push(text); basicOf[asm.length] = basic; };
+    const ins = (op, arg, cmt) => emit(`        ${op.padEnd(6)}${cmt ? arg.padEnd(16) + '; ' + cmt : arg}`);
+    const label = (l) => emit(`${l}:`);
+    const newLabel = (k) => `_${k}${++uid}`;
+    const err = (msg) => errors.push(`${cur}行: ${msg}`);
+
+    // ---- 項と式 -------------------------------------------------
+    function num(tok) {
+      let n = null;
+      if (/^0x/i.test(tok)) n = parseInt(tok.slice(2), 16);
+      else if (/^0b/i.test(tok)) n = parseInt(tok.slice(2), 2);
+      else if (/^\d+$/.test(tok)) n = parseInt(tok, 10);
+      return n;
+    }
+    function parseTerm(ts) {
+      const t = ts.shift();
+      if (t === undefined) { err('式が とちゅうで おわっているよ'); return { k: 'num', v: 0 }; }
+      const n = num(t);
+      if (n !== null) {
+        if (n > 255) err(`${t} は 大きすぎるよ (0〜255)`);
+        return { k: 'num', v: n & 255 };
+      }
+      if (/^\$/.test(t)) {
+        if (!VARS.includes(t)) err(`${t} という変数はないよ ($A〜$Z, $0〜$5)`);
+        userVars.add(t);
+        return { k: 'var', v: t };
+      }
+      if (t === 'IN') return { k: 'in' };
+      if (t === 'PEEK') {
+        if (ts.shift() !== '(') err('PEEK のあとは ( だよ');
+        const a = num(ts.shift() || '');
+        if (a === null || a > 127) err('PEEK の番地は 0〜127 の数だけ使えるよ');
+        if (ts.shift() !== ')') err('PEEK の ) がないよ');
+        return { k: 'peek', v: a || 0 };
+      }
+      err(`「${t}」は 式の中では使えないよ`);
+      return { k: 'num', v: 0 };
+    }
+    const OPS = ['+', '-', 'AND', 'OR', 'NAND'];
+    function parseExpr(ts) {
+      const e = { first: parseTerm(ts), rest: [] };
+      while (OPS.includes(ts[0])) e.rest.push({ op: ts.shift(), t: parseTerm(ts) });
+      return e;
+    }
+    function loadV(t) {                              // 項を V に入れる
+      switch (t.k) {
+        case 'num':  ins('READ', `IMM, ${t.v}`); break;
+        case 'var':  ins('READ', t.v); break;
+        case 'in':   ins('READ', 'IN'); break;
+        case 'peek': ins('READ', `0x${t.v.toString(16).toUpperCase()}`); break;
+      }
+    }
+    function genExpr(e) {                            // 式の答えを V に入れる
+      loadV(e.first);
+      for (const { op, t } of e.rest) {
+        ins('WRITE', 'ALU_A');
+        if (op === 'OR') {                           // a OR b = NAND(~a, ~b)
+          used.tmp = true;
+          ins('READ', 'IMM, 255'); ins('WRITE', 'ALU_B');
+          ins('READ', 'ALU_NAND', '~a (a の反対)'); ins('WRITE', TMP);
+          loadV(t); ins('WRITE', 'ALU_A');
+          ins('READ', 'ALU_NAND', '~b (b の反対)'); ins('WRITE', 'ALU_B');
+          ins('READ', TMP); ins('WRITE', 'ALU_A');
+          ins('READ', 'ALU_NAND', 'a OR b');
+          continue;
+        }
+        loadV(t); ins('WRITE', 'ALU_B');
+        if (op === '+') ins('READ', 'ALU_ADD');
+        else if (op === '-') ins('READ', 'ALU_SUB');
+        else if (op === 'NAND') ins('READ', 'ALU_NAND');
+        else if (op === 'AND') {                     // a AND b = ~NAND(a, b)
+          ins('READ', 'ALU_NAND'); ins('WRITE', 'ALU_A');
+          ins('READ', 'IMM, 255'); ins('WRITE', 'ALU_B');
+          ins('READ', 'ALU_NAND', 'a AND b');
+        }
+      }
+    }
+    const lineLabel = (n) => {
+      if (!lineSet.has(n)) err(`${n}行 は ないよ`);
+      return `L${n}`;
+    };
+    function parseLineNo(ts) {
+      const n = num(ts.shift() || '');
+      if (n === null) { err('行番号を書いてね'); return 'L0'; }
+      return lineLabel(n);
+    }
+
+    // ---- 文 -----------------------------------------------------
+    // ts = トークン列。IF は同じ行ののこりを全部 THEN の中身にする。
+    function stmt(ts, restStmts) {
+      const t = ts.shift();
+      if (t === undefined) return;
+      if (t === 'REM') return;
+      if (t === 'LET') return stmt(ts, restStmts);
+      if (/^\$/.test(t)) {
+        if (!VARS.includes(t)) return err(`${t} という変数はないよ`);
+        userVars.add(t);
+        if (ts.shift() !== '=') return err(`${t} のあとは = だよ`);
+        genExpr(parseExpr(ts)); ins('WRITE', t);
+      } else if (t === 'OUT') {
+        genExpr(parseExpr(ts)); ins('WRITE', 'OUT');
+      } else if (t === 'POKE') {
+        const a = num(ts.shift() || '');
+        if (a === null || a > 127) return err('POKE の番地は 0〜127 の数だけ使えるよ');
+        if (ts.shift() !== ',') return err('POKE 番地, 式 のように , で区切ってね');
+        genExpr(parseExpr(ts)); ins('WRITE', `0x${a.toString(16).toUpperCase()}`);
+      } else if (t === 'GOTO') {
+        ins('READ', `IMM, ${parseLineNo(ts)}`); ins('WRITE', 'JMP');
+      } else if (t === 'GOSUB') {
+        used.gosub = true;
+        const target = parseLineNo(ts), back = newLabel('R');
+        ins('READ', `IMM, ${back}`); ins('WRITE', RET, 'もどる場所をおぼえる');
+        ins('READ', `IMM, ${target}`); ins('WRITE', 'JMP');
+        label(back);
+      } else if (t === 'RETURN') {
+        used.gosub = true;
+        ins('READ', RET); ins('WRITE', 'JMP', 'おぼえた場所へもどる');
+      } else if (t === 'WAIT') {
+        used.wait = true;
+        const lp = newLabel('W'), done = newLabel('E');
+        genExpr(parseExpr(ts)); ins('WRITE', WCNT);
+        label(lp);                                   // 1回 = 10命令 = 0.01秒
+        ins('READ', WCNT); ins('WRITE', 'ALU_A');
+        ins('READ', `IMM, ${done}`); ins('WRITE', 'JZ', '0 なら待ちおわり');
+        ins('READ', 'IMM, 1'); ins('WRITE', 'ALU_B');
+        ins('READ', 'ALU_SUB'); ins('WRITE', WCNT);
+        ins('READ', `IMM, ${lp}`); ins('WRITE', 'JMP');
+        label(done);
+      } else if (t === 'END') {
+        const here = newLabel('H');
+        label(here); ins('READ', `IMM, ${here}`); ins('WRITE', 'JMP', 'おわり (ここで足ぶみ)');
+      } else if (t === 'IF') {
+        const cmp = ts.indexOf('=') >= 0 && (ts.indexOf('<>') < 0 || ts.indexOf('=') < ts.indexOf('<>')) ? '=' : '<>';
+        const at = ts.indexOf(cmp);
+        const th = ts.indexOf('THEN');
+        if (at < 0) return err('IF には = か <> がいるよ');
+        if (th < 0) return err('IF には THEN がいるよ');
+        const left = parseExpr(ts.slice(0, at));
+        const rightTs = ts.slice(at + 1, th);
+        const right = parseTerm(rightTs);
+        if (rightTs.length) err('IF の右がわは 数か変数 1つにしてね');
+        const body = ts.slice(th + 1);
+        // ALU_A = 左 - 右  (0 なら「おなじ」)
+        genExpr(left); ins('WRITE', 'ALU_A');
+        if (!(right.k === 'num' && right.v === 0)) {
+          loadV(right); ins('WRITE', 'ALU_B');
+          ins('READ', 'ALU_SUB'); ins('WRITE', 'ALU_A', 'ALU_A = 左 - 右');
+        }
+        let gotoN = null;
+        if (body.length === 1 && num(body[0]) !== null) gotoN = lineLabel(num(body[0]));
+        else if (body.length === 2 && body[0] === 'GOTO' && num(body[1]) !== null) gotoN = lineLabel(num(body[1]));
+        if (gotoN && restStmts.length === 0) {
+          if (cmp === '=') { ins('READ', `IMM, ${gotoN}`); ins('WRITE', 'JZ', 'おなじなら ジャンプ'); }
+          else {
+            const skip = newLabel('S');
+            ins('READ', `IMM, ${skip}`); ins('WRITE', 'JZ', 'おなじなら とばす');
+            ins('READ', `IMM, ${gotoN}`); ins('WRITE', 'JMP', 'ちがうから ジャンプ');
+            label(skip);
+          }
+          return;
+        }
+        const skip = newLabel('S');
+        if (cmp === '=') {
+          const yes = newLabel('T');
+          ins('READ', `IMM, ${yes}`); ins('WRITE', 'JZ', 'おなじなら THEN へ');
+          ins('READ', `IMM, ${skip}`); ins('WRITE', 'JMP', 'ちがうから とばす');
+          label(yes);
+        } else {
+          ins('READ', `IMM, ${skip}`); ins('WRITE', 'JZ', 'おなじなら とばす');
+        }
+        stmt(body, restStmts);
+        while (restStmts.length) stmt(restStmts.shift(), restStmts);
+        label(skip);
+        return;
+      } else {
+        return err(`「${t}」は わからない命令だよ`);
+      }
+      if (ts.length) err(`「${ts.join(' ')}」が よけいだよ`);
+    }
+
+    emit('; ==== TinyBASIC改 から つくった プログラム ====', null);
+    for (const ln of lines) {
+      cur = ln.no;
+      emit(`; ${ln.no} ${ln.text}`);
+      label(`L${ln.no}`);
+      // REM のあとは : があっても全部コメント
+      const remAt = ln.text.search(/(^|:)\s*REM\b/i);
+      const code = remAt >= 0 ? ln.text.slice(0, remAt) : ln.text;
+      const parts = code.split(':').map(s => tokenize(s)).filter(p => p.length);
+      while (parts.length) stmt(parts.shift(), parts);
+    }
+    cur = null;
+    emit('; ---- プログラムのおわり ----', null);
+    label('_END'); ins('READ', 'IMM, _END'); ins('WRITE', 'JMP', 'おわり (ここで足ぶみ)');
+
+    // コンパイラ用の変数とぶつかっていないか
+    const clash = (v, why) => { if (userVars.has(v)) errors.push(`${v} は ${why} ので、ほかの変数を使ってね`); };
+    if (used.tmp) clash(TMP, 'OR の計算に使う');
+    if (used.wait) clash(WCNT, 'WAIT が使う');
+    if (used.gosub) clash(RET, 'GOSUB が使う');
+
+    return { asm: asm.join('\n') + '\n', basicOf, lines, errors };
+  }
+
+  // BASIC -> 機械語 まで一気に (アセンブラが必要)
+  function build(src, asmApi) {
+    const c = compile(src);
+    if (c.errors.length) return { errors: c.errors, compiled: c };
+    const r = asmApi.assemble(c.asm);
+    r.compiled = c;
+    if (r.errors.length) r.errors = r.errors.map(e => 'アセンブラ: ' + e);
+    return r;
+  }
+
+  const api = { compile, build };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else root.TBASIC = api;
+
+  if (typeof require !== 'undefined' && typeof module !== 'undefined' && require.main === module) {
+    const fs = require('fs'), path = require('path');
+    const file = process.argv[2];
+    if (!file) { console.log('usage: node tbasic.js prog.bas'); process.exit(1); }
+    const r = build(fs.readFileSync(file, 'utf8'), require('./tta8asm.js'));
+    if (r.errors.length) { r.errors.forEach(e => console.error('ERROR ' + e)); process.exit(1); }
+    const base = file.replace(/\.bas$/i, '');
+    fs.writeFileSync(base + '.asm', r.compiled.asm);
+    fs.writeFileSync(base + '.hex', r.hex);
+    fs.writeFileSync(base + '.lst', r.lst);
+    console.log(`${path.basename(file)}: ${r.size} bytes -> ${path.basename(base)}.asm / .hex`);
+  }
+})(this);
+</script>
+<script>
+const SAMPLES = {"flasher_bas": {"lang": "basic", "name": "LEDフラッシャー", "src": "10 REM ===== LED フラッシャー (TinyBASIC改) =====\n20 REM なにも押さない: 右はしが点滅 / S1: 右から左へ\n30 REM S2: 外から内へ / S1+S2: 交互に点滅\n100 $M = IN\n110 IF $M = 1 THEN GOTO 300\n120 IF $M = 2 THEN GOTO 400\n130 IF $M = 3 THEN GOTO 500\n200 REM ----- なにも押していない -----\n210 $L = 0b000001 : GOSUB 900\n220 $L = 0b000000 : GOSUB 900\n230 GOTO 100\n300 REM ----- S1 : 右から左へ (2倍ずつ) -----\n310 $L = 1\n320 GOSUB 900\n330 $L = $L + $L\n340 IF $L <> 64 THEN GOTO 320\n350 GOTO 100\n400 REM ----- S2 : 外から内へ -----\n410 $L = 0b100001 : GOSUB 900\n420 $L = 0b010010 : GOSUB 900\n430 $L = 0b001100 : GOSUB 900\n440 GOTO 100\n500 REM ----- S1 + S2 : 交互に点滅 -----\n510 $L = 0b101010 : GOSUB 900\n520 $L = 0b010101 : GOSUB 900\n530 GOTO 100\n900 REM ----- $L を光らせて 0.5秒 待つ -----\n910 OUT $L\n920 WAIT 50\n930 IF IN <> $M THEN GOTO 100\n940 RETURN\n"}, "add_bas": {"lang": "basic", "name": "はじめての たし算", "src": "10 REM ===== はじめての たし算 =====\n20 $A = 3\n30 $B = 5\n40 $C = $A + $B\n50 OUT $C\n60 END\n"}, "count_bas": {"lang": "basic", "name": "2進数カウンター", "src": "10 REM ===== LED で 2進数カウンター =====\n20 $C = 0\n30 OUT $C\n40 WAIT 50\n50 $C = $C + 1\n60 GOTO 30\n"}, "mul_bas": {"lang": "basic", "name": "かけ算 6×7", "src": "10 REM ===== かけ算 6 x 7 (たし算のくりかえし) =====\n20 $A = 6 : $B = 7 : $C = 0\n30 IF $B = 0 THEN GOTO 70\n40 $C = $C + $A\n50 $B = $B - 1\n60 GOTO 30\n70 OUT $C\n80 END\n"}, "flasher": {"lang": "asm", "name": "LEDフラッシャー", "src": "; ============================================================\n;  LED フラッシャー (Tang Nano 20K)\n;    なにも押さない : 右はしの LED が点滅\n;    S1             : 光が右から左へ流れる\n;    S2             : 外側から内側へ\n;    S1 + S2        : 交互に点滅\n;  CPU は 1秒に 1000命令。1つの模様を約 0.5秒 見せる。\n; ============================================================\n; 変数  $M = いま押されているボタン\n;       $L = 次に光らせる LED\n;       $R = STEP から戻る場所\n        .equ  WAITN 80      ; 待ち時間 (80回 x 6命令 = 約0.5秒)\n\n; ---- ボタンを見て、どの模様にするか決める ------------------\nMAIN:   READ  IN\n        WRITE $M            ; $M = ボタン\n        WRITE ALU_A         ; ALU_A = ボタン\n        READ  IMM, IDLE\n        WRITE JZ            ; 0 なら IDLE へ\n        READ  IMM, 1\n        WRITE ALU_B         ; ALU_B = 1\n        READ  ALU_SUB\n        WRITE ALU_A         ; ALU_A = ALU_A - 1\n        READ  IMM, MODE1\n        WRITE JZ            ; 1 (S1) なら MODE1 へ\n        READ  ALU_SUB\n        WRITE ALU_A         ; ALU_A = ALU_A - 1\n        READ  IMM, MODE2\n        WRITE JZ            ; 2 (S2) なら MODE2 へ\n        READ  IMM, MODE3\n        WRITE JMP           ; のこりは 3 (S1+S2)\n\n; ---- なにも押していない : 000001 / 000000 --------------------\nIDLE:   READ  IMM, 0b000001\n        WRITE $L\n        READ  IMM, I1\n        WRITE $R\n        READ  IMM, STEP\n        WRITE JMP\nI1:     READ  IMM, 0b000000\n        WRITE $L\n        READ  IMM, MAIN\n        WRITE $R\n        READ  IMM, STEP\n        WRITE JMP\n\n; ---- S1 : 右から左へ -----------------------------------------\nMODE1:  READ  IMM, 0b000001\n        WRITE $L\n        READ  IMM, A1\n        WRITE $R\n        READ  IMM, STEP\n        WRITE JMP\nA1:     READ  IMM, 0b000010\n        WRITE $L\n        READ  IMM, A2\n        WRITE $R\n        READ  IMM, STEP\n        WRITE JMP\nA2:     READ  IMM, 0b000100\n        WRITE $L\n        READ  IMM, A3\n        WRITE $R\n        READ  IMM, STEP\n        WRITE JMP\nA3:     READ  IMM, 0b001000\n        WRITE $L\n        READ  IMM, A4\n        WRITE $R\n        READ  IMM, STEP\n        WRITE JMP\nA4:     READ  IMM, 0b010000\n        WRITE $L\n        READ  IMM, A5\n        WRITE $R\n        READ  IMM, STEP\n        WRITE JMP\nA5:     READ  IMM, 0b100000\n        WRITE $L\n        READ  IMM, MAIN\n        WRITE $R\n        READ  IMM, STEP\n        WRITE JMP\n\n; ---- S2 : 外側から内側へ -------------------------------------\nMODE2:  READ  IMM, 0b100001\n        WRITE $L\n        READ  IMM, B1\n        WRITE $R\n        READ  IMM, STEP\n        WRITE JMP\nB1:     READ  IMM, 0b010010\n        WRITE $L\n        READ  IMM, B2\n        WRITE $R\n        READ  IMM, STEP\n        WRITE JMP\nB2:     READ  IMM, 0b001100\n        WRITE $L\n        READ  IMM, MAIN\n        WRITE $R\n        READ  IMM, STEP\n        WRITE JMP\n\n; ---- S1 + S2 : 交互に点滅 ------------------------------------\nMODE3:  READ  IMM, 0b101010\n        WRITE $L\n        READ  IMM, C1\n        WRITE $R\n        READ  IMM, STEP\n        WRITE JMP\nC1:     READ  IMM, 0b010101\n        WRITE $L\n        READ  IMM, MAIN\n        WRITE $R\n        READ  IMM, STEP\n        WRITE JMP\n\n; ============================================================\n;  STEP : L を光らせて 0.5秒 待つ。\n;         ボタンが変わっていたら MAIN へ、同じなら R へ戻る。\n; ============================================================\nSTEP:   READ  $L\n        WRITE OUT           ; LED = $L\n        READ  IMM, WAITN\n        WRITE ALU_A         ; ALU_A = 待つ回数\n        READ  IMM, 1\n        WRITE ALU_B         ; ALU_B = 1\nWLOOP:  READ  ALU_SUB\n        WRITE ALU_A         ; ALU_A = ALU_A - 1\n        READ  IMM, WDONE\n        WRITE JZ            ; 0 になったら おわり\n        READ  IMM, WLOOP\n        WRITE JMP           ; まだなら くりかえし\nWDONE:  READ  IN\n        WRITE ALU_A         ; ALU_A = いまのボタン\n        READ  $M\n        WRITE ALU_B         ; ALU_B = さっきのボタン\n        READ  ALU_SUB\n        WRITE ALU_A         ; ALU_A = ALU_A - ALU_B\n        READ  IMM, BACK\n        WRITE JZ            ; 同じなら BACK へ\n        READ  IMM, MAIN\n        WRITE JMP           ; 変わったら MAIN へ\nBACK:   READ  $R\n        WRITE JMP           ; $R の場所へ戻る\n"}, "add": {"lang": "asm", "name": "はじめての たし算", "src": "; ============================================================\n;  はじめてのプログラム : 3 + 5 を計算して LED に出す\n;  LED は 2進数で 8 = 001000 と光る\n; ============================================================\nSTART:  READ  IMM, 3\n        WRITE ALU_A         ; ALU_A = 3\n        READ  IMM, 5\n        WRITE ALU_B         ; ALU_B = 5\n        READ  ALU_ADD       ; V = 3 + 5\n        WRITE OUT           ; LED に出す\n        WRITE $A            ; 変数 $A にもしまう\nSTOP:   READ  IMM, STOP\n        WRITE JMP           ; ここでずっと足ぶみ\n"}, "count": {"lang": "asm", "name": "2進数カウンター", "src": "; ============================================================\n;  LED で 2進数カウンター : 0, 1, 2, 3 ... と 0.5秒ごとにふえる\n; ============================================================\n        .equ  WAITN 80      ; 待ち時間 (約0.5秒)\n\nSTART:  READ  IMM, 0\n        WRITE $C            ; $C = 0\nLOOP:   READ  $C\n        WRITE OUT           ; LED = $C\n        WRITE ALU_A         ; ALU_A = $C\n        READ  IMM, 1\n        WRITE ALU_B         ; ALU_B = 1\n        READ  ALU_ADD\n        WRITE $C            ; $C = $C + 1\n        READ  IMM, WAITN\n        WRITE ALU_A         ; ALU_A = 待つ回数\nWAIT:   READ  ALU_SUB\n        WRITE ALU_A         ; ALU_A = ALU_A - 1\n        READ  IMM, LOOP\n        WRITE JZ            ; 0 になったら LOOP へ\n        READ  IMM, WAIT\n        WRITE JMP           ; まだなら WAIT へ\n"}};
+</script>
+<script>
+(() => {
+'use strict';
+const $ = (id) => document.getElementById(id);
+const NS = 'http://www.w3.org/2000/svg';
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const store = {
+  get(k, d) { try { const v = localStorage.getItem('tta8lab.' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem('tta8lab.' + k, JSON.stringify(v)); } catch (e) {} },
+};
+
+// ============================================================
+//  名前
+// ============================================================
+const VARNAMES = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ012345'.split('').map(c => '$' + c);
+const PORTNAME = { 0x00: 'ALU_A', 0x01: 'ALU_B', 0x02: 'ALU_ADD', 0x03: 'ALU_NAND', 0x04: 'ALU_SUB',
+  0x10: 'JMP', 0x11: 'JZ', 0x12: 'IMM', 0x7e: 'IN', 0x7f: 'OUT' };
+VARNAMES.forEach((n, i) => PORTNAME[0x20 + i] = n);
+const pname = (a) => PORTNAME[a] || ('0x' + a.toString(16).toUpperCase().padStart(2, '0'));
+const hex2 = (n) => n.toString(16).toUpperCase().padStart(2, '0');
+const bin = (n, w) => n.toString(2).padStart(w, '0');
+function unitOf(a) {
+  if (a <= 1) return a === 0 ? 'ALU_A' : 'ALU_B';
+  if (a <= 4) return pname(a);
+  if (a === 0x10 || a === 0x11 || a === 0x12 || a === 0x7e || a === 0x7f) return pname(a);
+  if (a >= 0x20 && a <= 0x3f) return 'RAM';
+  return null;
+}
+function catOf(write, a) {
+  if (a === 0x12) return 'num';
+  if (a <= 4) return 'alu';
+  if (a === 0x10 || a === 0x11) return 'jump';
+  if (a === 0x7e) return 'in';
+  if (a === 0x7f) return 'out';
+  if (a >= 0x20 && a <= 0x3f) return 'var';
+  return 'other';
+}
+const CATCOLOR = { num: 'var(--c-num)', alu: 'var(--c-alu)', var: 'var(--c-var)', jump: 'var(--c-jump)', in: 'var(--c-in)', out: 'var(--c-out)', other: '#9AA0B8', core: 'var(--c-core)', rom: 'var(--c-rom)' };
+
+// ============================================================
+//  CPU (hdl/tta8.v と同じ動き)
+// ============================================================
+let prog = null, rom = new Uint8Array(256);
+const cpu = TTA8SIM.create();                     // tools/tta8sim.js
+function cpuReset() { TTA8SIM.reset(cpu); }
+function cpuStep() { return TTA8SIM.step(cpu, rom); }
+let lang = 'basic', basicSrc = '', basicAt = [], firstAddr = {}, editing = false;
+
+// ============================================================
+//  CPU の図 (SVG)
+// ============================================================
+const BUS = 228, VX = 320;
+const U = {
+  IMM:      { x: 20,  y: 150, w: 170, h: 44, s: 105, cat: 'num',  t: 'IMM (かず)' },
+  JMP:      { x: 210, y: 150, w: 72,  h: 44, s: 246, cat: 'jump', t: 'JMP' },
+  JZ:       { x: 290, y: 150, w: 72,  h: 44, s: 326, cat: 'jump', t: 'JZ' },
+  ALU_A:    { x: 388, y: 150, w: 46,  h: 44, s: 411, cat: 'alu',  t: 'A' },
+  ALU_B:    { x: 438, y: 150, w: 46,  h: 44, s: 461, cat: 'alu',  t: 'B' },
+  ALU_ADD:  { x: 492, y: 150, w: 46,  h: 44, s: 515, cat: 'alu',  t: 'ADD' },
+  ALU_SUB:  { x: 541, y: 150, w: 46,  h: 44, s: 564, cat: 'alu',  t: 'SUB' },
+  ALU_NAND: { x: 590, y: 150, w: 46,  h: 44, s: 613, cat: 'alu',  t: 'NAND' },
+  IN:       { x: 20,  y: 262, w: 110, h: 72, s: 75,  cat: 'in',   t: 'IN (ボタン)' },
+  OUT:      { x: 140, y: 262, w: 116, h: 72, s: 198, cat: 'out',  t: 'OUT (LED)' },
+  V:        { x: 268, y: 262, w: 104, h: 80, s: VX,  cat: 'core', t: 'V (レジスタ)' },
+  RAM:      { x: 388, y: 262, w: 248, h: 170, s: 512, cat: 'var', t: '変数 (RAM)' },
+};
+const dia = $('dia');
+const el = (tag, attrs, parent, text) => {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) {
+    const v = attrs[k];
+    if (typeof v === 'string' && v.includes('var(')) e.style.setProperty(k, v);   // CSS 変数は style で
+    else e.setAttribute(k, v);
+  }
+  if (text != null) e.textContent = text;
+  if (parent) parent.appendChild(e);
+  return e;
+};
+const T = {};   // 書きかえる text 要素
+function buildDiagram() {
+  // バス
+  el('line', { x1: 14, y1: BUS, x2: 634, y2: BUS, class: 'busline' }, dia);
+  el('text', { x: 16, y: BUS - 12, class: 'buslabel' }, dia, 'バス (データの通り道)');
+  // ROM
+  const rg = el('g', { class: 'u', id: 'u-ROM' }, dia);
+  el('rect', { x: 20, y: 14, width: 342, height: 118, rx: 12, class: 'u-box', stroke: CATCOLOR.rom }, rg);
+  el('text', { x: 32, y: 34, class: 'u-title', fill: CATCOLOR.rom }, rg, 'プログラム (ROM)');
+  T.pc = el('text', { x: 350, y: 34, class: 'u-sub', 'text-anchor': 'end' }, rg, 'PC = 0');
+  T.bits = [];
+  for (let i = 0; i < 8; i++) {
+    const g = el('g', { class: 'bit' }, rg);
+    el('rect', { x: 32 + i * 30, y: 46, width: 26, height: 30, rx: 5 }, g);
+    const t = el('text', { x: 45 + i * 30, y: 67, 'text-anchor': 'middle' }, g, '0');
+    T.bits.push({ g, t });
+  }
+  el('text', { x: 45, y: 92, 'text-anchor': 'middle', class: 'u-sub' }, rg, 'R/W');
+  el('text', { x: 150, y: 92, 'text-anchor': 'middle', class: 'u-sub' }, rg, '← アドレス (7bit) →');
+  T.hex = el('text', { x: 350, y: 70, class: 'u-val', 'text-anchor': 'end' }, rg, '00');
+  T.dec = el('text', { x: 32, y: 120, class: 'u-title', fill: 'var(--ink)' }, rg, '');
+  // ALU パネル
+  const ag = el('g', { class: 'u', id: 'u-ALU' }, dia);
+  el('path', { d: 'M388 14 H636 V104 L604 132 H420 L388 104 Z', class: 'u-box', stroke: CATCOLOR.alu }, ag);
+  el('text', { x: 400, y: 34, class: 'u-title', fill: CATCOLOR.alu }, ag, 'ALU (けいさん係)');
+  T.fAdd = el('text', { x: 400, y: 58, class: 'u-sub' }, ag, '');
+  T.fSub = el('text', { x: 400, y: 78, class: 'u-sub' }, ag, '');
+  T.fNand = el('text', { x: 400, y: 98, class: 'u-sub' }, ag, '');
+  for (const k of ['ALU_A', 'ALU_B']) el('line', { x1: U[k].s, y1: 150, x2: U[k].s, y2: 132, class: 'stub' }, dia);
+  for (const k of ['ALU_ADD', 'ALU_SUB', 'ALU_NAND']) el('line', { x1: U[k].s, y1: 132, x2: U[k].s, y2: 150, class: 'stub' }, dia);
+  el('text', { x: 286, y: 144, class: 'buslabel', 'text-anchor': 'middle' }, dia, 'ジャンプ係');
+  // ユニット
+  for (const k in U) {
+    const u = U[k];
+    const top = u.y < BUS;
+    el('line', { x1: u.s, y1: top ? u.y + u.h : u.y, x2: u.s, y2: BUS, class: 'stub' }, dia);
+    const g = el('g', { class: 'u', id: 'u-' + k }, dia);
+    el('rect', { x: u.x, y: u.y, width: u.w, height: u.h, rx: 10, class: 'u-box', stroke: CATCOLOR[u.cat] }, g);
+    const small = u.w < 60;
+    el('text', { x: small ? u.x + u.w / 2 : u.x + 10, y: u.y + 15, class: 'u-title', fill: CATCOLOR[u.cat], 'text-anchor': small ? 'middle' : 'start', 'font-size': small ? 10 : 12 }, g, u.t);
+    if (k !== 'RAM') T[k] = el('text', { x: small ? u.x + u.w / 2 : u.x + 10, y: u.y + (u.h > 60 ? 44 : 37), class: 'u-val', 'text-anchor': small ? 'middle' : 'start', 'font-size': small ? 16 : 20 }, g, '0');
+    u.g = g;
+  }
+  T.vbin = el('text', { x: U.V.x + 10, y: U.V.y + 66, class: 'u-sub' }, U.V.g, '00000000');
+  T.JZs = el('text', { x: U.JZ.x + 62, y: U.JZ.y + 37, class: 'u-sub', 'text-anchor': 'end' }, U.JZ.g, '');
+  // IN / OUT の小さな絵
+  T.inDots = [0, 1].map(i => {
+    el('text', { x: U.IN.x + 64 + i * 24, y: U.IN.y + 62, class: 'u-sub', 'text-anchor': 'middle' }, U.IN.g, i ? 'S2' : 'S1');
+    return el('circle', { cx: U.IN.x + 64 + i * 24, cy: U.IN.y + 40, r: 8, fill: 'var(--panel-2)', stroke: 'var(--c-in)', 'stroke-width': 2 }, U.IN.g);
+  });
+  T.outDots = [];
+  for (let i = 0; i < 6; i++) {
+    T.outDots.push(el('circle', { cx: U.OUT.x + 101 - i * 17, cy: U.OUT.y + 58, r: 6, fill: 'var(--led-off)' }, U.OUT.g));
+  }
+  T.IN.setAttribute('x', U.IN.x + 12);
+  // RAM のマス
+  T.cells = [];
+  for (let i = 0; i < 32; i++) {
+    const cx = 394 + (i % 8) * 30, cy = 284 + Math.floor(i / 8) * 36;
+    const g = el('g', { class: 'cell' }, U.RAM.g);
+    el('rect', { x: cx, y: cy, width: 27, height: 32, rx: 5 }, g);
+    el('text', { x: cx + 13.5, y: cy + 11, 'text-anchor': 'middle', 'font-size': 9, opacity: .75 }, g, VARNAMES[i]);
+    const t = el('text', { x: cx + 13.5, y: cy + 27, 'text-anchor': 'middle', 'font-size': 13 }, g, '0');
+    T.cells.push({ g, t });
+  }
+  // 玉
+  T.ball = el('circle', { r: 10, cx: -40, cy: -40, fill: 'var(--c-core)', stroke: 'var(--panel)', 'stroke-width': 3 }, dia);
+  T.pop = el('text', { x: 326, y: 140, class: 'pop', 'text-anchor': 'middle', opacity: 0 }, dia, 'ジャンプ！');
+}
+
+// ============================================================
+//  ボード (SVG)
+// ============================================================
+const brd = $('brd');
+const B = {};
+function buildBoard() {
+  // 本物と同じ向き: 「TANG NANO 20K」が読める向き = USB が左、S2 が左上、S1 が左下、LED は下の辺
+  el('rect', { x: 20, y: 18, width: 290, height: 134, rx: 12, fill: 'var(--pcb)' }, brd);
+  for (let i = 0; i < 14; i++) {
+    el('circle', { cx: 44 + i * 19, cy: 26, r: 3.2, fill: '#C9A94A' }, brd);
+    el('circle', { cx: 44 + i * 19, cy: 144, r: 3.2, fill: '#C9A94A' }, brd);
+  }
+  el('rect', { x: 4, y: 66, width: 34, height: 38, rx: 6, fill: '#B9BCC6', stroke: '#8D909B', 'stroke-width': 2 }, brd);
+  el('rect', { x: 12, y: 78, width: 18, height: 14, rx: 4, fill: '#4A4D57' }, brd);
+  el('rect', { x: 264, y: 54, width: 42, height: 44, rx: 4, fill: '#B9BCC6', stroke: '#8D909B', 'stroke-width': 2 }, brd);   // HDMI
+  el('rect', { x: 272, y: 66, width: 26, height: 20, rx: 3, fill: '#4A4D57' }, brd);
+  el('rect', { x: 102, y: 38, width: 58, height: 58, rx: 4, fill: '#2E3038', stroke: '#4B4E59' }, brd);
+  el('text', { x: 131, y: 65, 'text-anchor': 'middle', fill: '#B7BAC6', 'font-family': 'var(--f-dot)', 'font-size': 11 }, brd, 'GW2AR');
+  el('text', { x: 131, y: 80, 'text-anchor': 'middle', fill: '#8D909B', 'font-family': 'var(--f-dot)', 'font-size': 8 }, brd, 'TTA-8 inside');
+  el('text', { x: 259, y: 46, 'text-anchor': 'end', fill: '#E6E6EA', 'font-family': 'var(--f-ui)', 'font-weight': 800, 'font-size': 10 }, brd, 'TANG NANO 20K');
+  // ボタン (data-b 0 = S1, 1 = S2)
+  B.btn = [['S1', 60, 124], ['S2', 60, 46]].map(([n, x, y], i) => {
+    const g = el('g', { class: 'pbtn', 'data-b': i, role: 'button', tabindex: 0, 'aria-label': n + ' ボタン', 'aria-pressed': 'false' }, brd);
+    el('rect', { x: x - 24, y: y - 20, width: 70, height: 40, rx: 8, class: 'hit' }, g);
+    el('rect', { x: x - 14, y: y - 14, width: 28, height: 28, rx: 4, fill: '#C9CBD3', class: 'base' }, g);
+    el('circle', { cx: x, cy: y, r: 9, class: 'cap' }, g);
+    el('circle', { cx: x, cy: y, r: 13, class: 'ring' }, g);
+    el('text', { x: x + 20, y: y + 4, fill: '#E6E6EA', 'font-family': 'var(--f-ui)', 'font-weight': 800, 'font-size': 11 }, g, n);
+    g.addEventListener('keydown', (e) => { if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) { e.preventDefault(); e.stopPropagation(); setBtn(i, true); } });
+    g.addEventListener('keyup', (e) => { if ((e.key === ' ' || e.key === 'Enter') && !$('lock').checked) { e.preventDefault(); setBtn(i, false); } });
+    return g;
+  });
+  // LED : S1 の右どなりに 6こ ならぶ (左が bit5、右が bit0)
+  B.led = [];
+  for (let i = 0; i < 6; i++) {
+    const x = 196 - i * 16, y = 126;
+    const glow = el('circle', { cx: x, cy: y, r: 12, fill: 'var(--led-on)', opacity: 0, class: 'led-glow', filter: 'url(#blur)' }, brd);
+    const body = el('rect', { x: x - 5, y: y - 4, width: 10, height: 8, rx: 2, fill: 'var(--led-off)' }, brd);
+    el('text', { x, y: y - 10, 'text-anchor': 'middle', fill: '#9EA1AD', 'font-family': 'var(--f-dot)', 'font-size': 9 }, brd, String(i));
+    B.led.push({ glow, body });
+  }
+  el('text', { x: 212, y: 129, fill: '#9EA1AD', 'font-family': 'var(--f-ui)', 'font-weight': 700, 'font-size': 9 }, brd, 'LED');
+  const defs = el('defs', {}, brd);
+  const f = el('filter', { id: 'blur', x: '-50%', y: '-50%', width: '200%', height: '200%' }, defs);
+  el('feGaussianBlur', { stdDeviation: 3 }, f);
+}
+
+// ============================================================
+//  ブロック表示
+// ============================================================
+let rowAt = [], hdrAt = {};     // rom 番地 -> 行, BASIC 行番号 -> 帽子
+const bps = new Set();
+function friendly(l) {
+  let m;
+  if ((m = l.match(/^L(\d+)$/))) return `${m[1]}行`;
+  if ((m = l.match(/^_([RSTWEH])(\d+)$/))) return ({ R: 'もどり', S: 'とばし先', T: 'THEN', W: 'まつ', E: 'まちおわり', H: 'おわり' })[m[1]] + (m[1] === 'H' ? '' : m[2]);
+  if (l === '_END') return 'おわり';
+  return l;
+}
+function blockHTML(it) {
+  const cat = catOf(it.op === 'WRITE', it.port);
+  const name = pname(it.port);
+  let inner;
+  if (it.op === 'READ' && it.port === 0x12) {
+    const lbl = isNaN(parseInt(it.imm)) ? friendly(it.imm.toUpperCase()) : it.value;
+    inner = `<span class="verb">よむ</span>数<span class="pill">${esc(String(lbl))}</span>を V へ`;
+  } else if (it.op === 'READ') {
+    inner = `<span class="verb">よむ</span><span class="pill dark">${name}</span>から V へ`;
+  } else if (it.port === 0x10) {
+    inner = `<span class="verb">かく</span>V を<span class="pill dark">JMP</span>へ ＝ ジャンプ`;
+  } else if (it.port === 0x11) {
+    inner = `<span class="verb">かく</span>V を<span class="pill dark">JZ</span>へ ＝ 0 ならジャンプ`;
+  } else {
+    inner = `<span class="verb">かく</span>V を<span class="pill dark">${name}</span>へ`;
+  }
+  if (it.comment) inner += `<span class="note">${esc(it.comment)}</span>`;
+  return { cat, inner };
+}
+const esc = (s) => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+function renderBlocks() {
+  const box = $('blocks');
+  box.textContent = '';
+  rowAt = []; hdrAt = {};
+  const C = prog.compiled;
+  let li = -1;
+  for (const it of prog.items) {
+    if (C) {                                         // BASIC の行を 帽子ブロックで出す
+      const b = C.basicOf[it.line];
+      const k = b == null ? -1 : C.lines.findIndex(x => x.no === b);
+      while (k > li) {
+        li++;
+        const ln = C.lines[li], rem = /^REM/i.test(ln.text);
+        const r = document.createElement('div'); r.className = 'row';
+        r.innerHTML = `<div class="gut"></div><div class="bhdr${rem ? ' rem' : ''}"><span class="n">${ln.no}</span>${esc(ln.text)}</div>`;
+        box.appendChild(r); hdrAt[ln.no] = r;
+      }
+    }
+    const labels = prog.labels[it.addr];
+    if (labels) for (const l of labels) {
+      if (C && /^L\d+$/.test(l)) continue;
+      const r = document.createElement('div'); r.className = 'row';
+      r.innerHTML = `<div class="gut"></div><div class="hat"><span class="verb">ラベル</span>${esc(friendly(l))}<span style="opacity:.8;font-size:12px">＝ ${it.addr} 番地</span></div>`;
+      box.appendChild(r);
+    }
+    const { cat, inner } = blockHTML(it);
+    const r = document.createElement('div');
+    r.className = 'row' + (bps.has(it.addr) ? ' bp' : '');
+    r.innerHTML = `<div class="gut" title="クリックでブレークポイント">${hex2(it.addr)}<small>${it.bytes.map(hex2).join(' ')}</small></div><div class="blk ${cat}">${inner}</div>`;
+    r.querySelector('.gut').addEventListener('click', () => toggleBp(it.addr));
+    box.appendChild(r);
+    rowAt[it.addr] = r;
+  }
+  $('size').textContent = `${prog.size} / 256 バイト`;
+}
+
+// ============================================================
+//  画面の更新
+// ============================================================
+let nowRow = null;
+function render(ev, opts = {}) {
+  // ROM
+  const inst = rom[cpu.pc];
+  T.pc.textContent = `PC = ${cpu.pc} 番地`;
+  for (let i = 0; i < 8; i++) {
+    const bit = (inst >> (7 - i)) & 1;
+    T.bits[i].t.textContent = bit;
+    T.bits[i].g.classList.toggle('one', !!bit);
+  }
+  T.hex.textContent = hex2(inst) + (((inst & 0x7f) === 0x12 && !(inst & 0x80)) ? ' ' + hex2(rom[(cpu.pc + 1) & 255]) : '');
+  T.dec.textContent = `つぎ： ${inst & 0x80 ? 'WRITE (かく)' : 'READ (よむ)'}  ${pname(inst & 0x7f)}`;
+  // 値
+  T.V.textContent = cpu.v; T.vbin.textContent = bin(cpu.v, 8);
+  T.ALU_A.textContent = cpu.a; T.ALU_B.textContent = cpu.b;
+  const add = (cpu.a + cpu.b) & 255, sub = (cpu.a - cpu.b) & 255, nand = (~(cpu.a & cpu.b)) & 255;
+  T.ALU_ADD.textContent = add; T.ALU_SUB.textContent = sub; T.ALU_NAND.textContent = nand;
+  T.fAdd.textContent = `A + B = ${cpu.a} + ${cpu.b} = ${add}`;
+  T.fSub.textContent = `A − B = ${cpu.a} − ${cpu.b} = ${sub}`;
+  T.fNand.textContent = `A NAND B = ${nand}`;
+  T.IMM.textContent = ((inst & 0xff) === 0x12) ? `つぎの数 ${rom[(cpu.pc + 1) & 255]}` : (ev && ev.addr === 0x12 && !ev.write ? `${ev.value}` : '—');
+  T.JMP.textContent = ev && ev.write && ev.addr === 0x10 ? ev.value : '—';
+  T.JZ.textContent = ev && ev.write && ev.addr === 0x11 ? ev.value : '—';
+  T.JZs.textContent = cpu.a === 0 ? 'A=0' : '';
+  T.IN.textContent = cpu.btn;
+  T.inDots.forEach((d, i) => d.style.fill = (cpu.btn >> i) & 1 ? 'var(--c-in)' : 'var(--panel-2)');
+  T.OUT.textContent = cpu.led;
+  T.outDots.forEach((d, i) => d.style.fill = (cpu.led >> i) & 1 ? 'var(--led-on)' : 'var(--led-off)');
+  for (let i = 0; i < 32; i++) T.cells[i].t.textContent = cpu.ram[i];
+  // ボード
+  B.led.forEach((l, i) => {
+    const on = (cpu.led >> i) & 1;
+    l.glow.setAttribute('opacity', on ? .9 : 0);
+    l.body.style.fill = on ? '#FFF3C4' : 'var(--led-off)';
+  });
+  // 光る部品
+  document.querySelectorAll('#dia .u.hot, #dia .cell.hot').forEach(n => n.classList.remove('hot'));
+  if (ev) {
+    const un = unitOf(ev.addr);
+    if (un && U[un]) U[un].g.classList.add('hot');
+    U.V.g.classList.add('hot');
+    if (un === 'RAM') T.cells[ev.addr & 31].g.classList.add('hot');
+    if (ev.addr <= 4) $('u-ALU').classList.add('hot');
+  }
+  // ブロック
+  if (nowRow) nowRow.classList.remove('now');
+  nowRow = rowAt[cpu.pc] || null;
+  if (nowRow) {
+    nowRow.classList.add('now');
+    if (!opts.noScroll) nowRow.scrollIntoView({ block: 'nearest', behavior: opts.smooth && !reduceMotion ? 'smooth' : 'auto' });
+  }
+  hiBasic(basicAt[cpu.pc], opts);
+  $('sSteps').textContent = stats.steps.toLocaleString();
+  $('clock').textContent = `ステップ ${stats.steps.toLocaleString()}`;
+}
+
+// いまの BASIC 行を光らせる
+let nowB = null, nowHdr = null;
+function hiBasic(no, opts) {
+  if (nowB) nowB.classList.remove('now');
+  if (nowHdr) nowHdr.classList.remove('nowb');
+  nowB = no != null ? document.querySelector(`#bview .bl[data-no="${no}"]`) : null;
+  nowHdr = no != null ? hdrAt[no] || null : null;
+  if (nowB) { nowB.classList.add('now'); if (!opts.noScroll && !$('basic').hidden) nowB.scrollIntoView({ block: 'nearest' }); }
+  if (nowHdr) nowHdr.classList.add('nowb');
+}
+// BASIC のソースを色つきで表示
+function colorize(code) {
+  const at = code.search(/(^|:)\s*REM\b/i);
+  const main = at >= 0 ? code.slice(0, at) : code, rem = at >= 0 ? code.slice(at) : '';
+  const body = esc(main).replace(/(\$[A-Za-z0-9])|\b(LET|OUT|POKE|IF|THEN|GOTO|GOSUB|RETURN|WAIT|END|IN|PEEK|AND|OR|NAND)\b|\b(0x[0-9a-f]+|0b[01]+|\d+)\b/gi,
+    (m, v, k, n) => v ? `<span class="k-var">${m}</span>` : k ? `<span class="k-kw">${m}</span>` : `<span class="k-num">${m}</span>`);
+  return body + (rem ? `<span class="rem">${esc(rem)}</span>` : '');
+}
+function renderBView() {
+  const v = $('bview');
+  if (lang !== 'basic') {
+    v.innerHTML = '<div class="bmsg">いまは アセンブリのプログラムだよ。<br>BASIC で書くときは、上の「サンプル」から BASIC のプログラムをえらぶか、「かきかえる」をおしてね。</div>';
+    return;
+  }
+  v.innerHTML = basicSrc.split(/\r?\n/).filter(x => x.trim()).map(line => {
+    const m = line.match(/^\s*(\d+)\s*(.*)$/);
+    if (!m) return `<div class="bl"><span class="no"></span><span class="code">${esc(line)}</span></div>`;
+    const no = +m[1], fa = firstAddr[no];
+    return `<div class="bl${fa != null && bps.has(fa) ? ' bp' : ''}" data-no="${no}"><span class="no">${no}</span><span class="code">${colorize(m[2])}</span></div>`;
+  }).join('');
+  v.querySelectorAll('.bl[data-no]').forEach(d => d.addEventListener('click', () => {
+    const no = +d.dataset.no, fa = firstAddr[no];
+    if (fa == null) { say(`${no}行 は 命令がない行 (REM など) なので、止められないよ。`); return; }
+    toggleBp(fa);
+  }));
+}
+function toggleBp(addr) {
+  if (bps.has(addr)) bps.delete(addr); else bps.add(addr);
+  if (rowAt[addr]) rowAt[addr].classList.toggle('bp', bps.has(addr));
+  const no = basicAt[addr];
+  if (no != null) { const d = document.querySelector(`#bview .bl[data-no="${no}"]`); if (d && firstAddr[no] === addr) d.classList.toggle('bp', bps.has(addr)); }
+  say(bps.has(addr) ? `${no != null && firstAddr[no] === addr ? no + '行 (' : ''}${hex2(addr)} 番地${no != null && firstAddr[no] === addr ? ')' : ''} に <b>ブレークポイント</b> をつけたよ。ここに来たら止まるよ。` : 'ブレークポイントをはずしたよ。');
+}
+
+// 玉を走らせる
+let ballAnim = null;
+function shoot(ev, ms) {
+  const un = unitOf(ev.addr);
+  if (!un || !U[un] || reduceMotion || ms < 60) { T.ball.setAttribute('cx', -40); return; }
+  const u = U[un], top = u.y < BUS;
+  const uy = top ? u.y + u.h : u.y;
+  let pts = [[u.s, uy], [u.s, BUS], [VX, BUS], [VX, U.V.y]];
+  if (ev.write) pts = pts.reverse();
+  T.ball.style.fill = CATCOLOR[catOf(ev.write, ev.addr)];
+  const segs = []; let total = 0;
+  for (let i = 1; i < pts.length; i++) { const d = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); segs.push(d); total += d; }
+  const t0 = performance.now();
+  cancelAnimationFrame(ballAnim);
+  const tick = (t) => {
+    let p = Math.min(1, (t - t0) / ms);
+    p = p < .5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+    let d = p * total, i = 0;
+    while (i < segs.length - 1 && d > segs[i]) { d -= segs[i]; i++; }
+    const f = segs[i] ? d / segs[i] : 1;
+    T.ball.setAttribute('cx', pts[i][0] + (pts[i + 1][0] - pts[i][0]) * f);
+    T.ball.setAttribute('cy', pts[i][1] + (pts[i + 1][1] - pts[i][1]) * f);
+    if (p < 1) ballAnim = requestAnimationFrame(tick);
+  };
+  ballAnim = requestAnimationFrame(tick);
+}
+function popJump(text) {
+  if (reduceMotion) return;
+  T.pop.textContent = text;
+  T.pop.animate([{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'translateY(0)', offset: .2 }, { opacity: 0, transform: 'translateY(-14px)' }], { duration: 900 });
+  $('pico').classList.remove('jump'); void $('pico').offsetWidth; $('pico').classList.add('jump');
+}
+
+// ピコのせりふ
+function say(html) { $('say').innerHTML = html; }
+function explain(ev) {
+  const n = pname(ev.addr), v = ev.value;
+  const lbl = (x) => prog.labels[x] ? `${friendly(prog.labels[x][0])} (${x} 番地)` : `${x} 番地`;
+  if (!ev.write) {
+    switch (ev.addr) {
+      case 0x12: return `数 <b>${v}</b> を V に入れたよ。`;
+      case 0x02: return `ALU が <b>${ev.a} + ${ev.b} = ${v}</b> を計算！ 答えを V に入れたよ。${ev.a + ev.b > 255 ? '（255 をこえたので 256 をひいたよ）' : ''}`;
+      case 0x04: return `ALU が <b>${ev.a} − ${ev.b} = ${v}</b> を計算！${ev.a < ev.b ? '（0 より小さくなったので 256 をたしたよ）' : ''}`;
+      case 0x03: return `ALU が <b>${ev.a} NAND ${ev.b} = ${v}</b> を計算！（AND の反対）`;
+      case 0x00: case 0x01: return `${n} の <b>${v}</b> を V に読んだよ。`;
+      case 0x7e: return `ボタンを見たよ。S1 は ${v & 1 ? 'おしてる' : 'はなしてる'}、S2 は ${v & 2 ? 'おしてる' : 'はなしてる'} → <b>${v}</b>`;
+      default:
+        if (ev.addr >= 0x20 && ev.addr <= 0x3f) return `変数 ${n} から <b>${v}</b> を読んだよ。`;
+        return `${n} には なにもないので <b>0</b> を読んだよ。`;
+    }
+  }
+  switch (ev.addr) {
+    case 0x00: case 0x01: return `V の <b>${v}</b> を ${n} に入れたよ。ALU の答えがすぐに変わるよ。`;
+    case 0x10: return `<b>${lbl(v)}</b> へ ジャンプ！`;
+    case 0x11: return ev.jz ? `ALU_A が 0 だから <b>${lbl(v)}</b> へ ジャンプ！` : `ALU_A が <b>${ev.a}</b> で 0 じゃないから、ジャンプしないで つぎへ。`;
+    case 0x7f: return `LED に <b>${v & 63}</b> を出したよ！ 2進数で <b>${bin(v & 63, 6)}</b>`;
+    default:
+      if (ev.addr >= 0x20 && ev.addr <= 0x3f) return `V の <b>${v}</b> を 変数 ${n} にしまったよ。`;
+      return `${n} には書きこめないよ（なにもおこらない）。`;
+  }
+}
+
+// ============================================================
+//  音
+// ============================================================
+let ac = null, soundOn = store.get('sound', true);
+function audio() { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (ac && ac.state === 'suspended') ac.resume(); return ac; }
+function tone(f, d = .07, type = 'square', vol = .05, when = 0, slide = 0) {
+  if (!soundOn || !ac) return;
+  const t = ac.currentTime + when, o = ac.createOscillator(), g = ac.createGain();
+  o.type = type; o.frequency.setValueAtTime(f, t);
+  if (slide) o.frequency.exponentialRampToValueAtTime(f * slide, t + d);
+  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d);
+  o.connect(g).connect(ac.destination); o.start(t); o.stop(t + d + .02);
+}
+function sfx(ev) {
+  if (ev.jump) tone(330, .16, 'square', .05, 0, 2.4);
+  else if (ev.write && ev.addr === 0x7f) { tone(880, .08, 'triangle', .08); tone(1320, .1, 'triangle', .06, .06); }
+  else if (ev.write) tone(440 + ev.addr, .05, 'square', .035);
+  else tone(620 + ev.value, .05, 'triangle', .05);
+}
+function fanfare() { [523, 659, 784, 1047].forEach((f, i) => tone(f, .16, 'square', .05, i * .09)); tone(1568, .35, 'triangle', .05, .38); }
+function updSound() {
+  $('bSound').setAttribute('aria-pressed', soundOn);
+  $('bSound').title = soundOn ? '音：オン' : '音：オフ';
+  $('waves').style.opacity = soundOn ? 1 : .15;
+}
+
+// ============================================================
+//  ミッションとごほうび
+// ============================================================
+const MISSIONS = [
+  { id: 'run',  t: 'みどりの旗で スタート！' },
+  { id: 'step', t: '「1つすすむ」を 10回 おそう', goal: 10 },
+  { id: 'jz',   t: 'JZ の ジャンプが決まるのを見よう' },
+  { id: 'm1',   t: 'S1 をおして 光を右から左へ流そう' },
+  { id: 'm2',   t: 'S2 をおして 外から内へ光らせよう' },
+  { id: 'm3',   t: 'S1 と S2 を いっしょにおそう' },
+  { id: 'bp',   t: 'ブレークポイントで 止めてみよう' },
+  { id: 'asm',  t: 'プログラムを書きかえて くみたてよう' },
+];
+const done = new Set(store.get('done', []));
+const stats = { steps: 0, manual: 0 };
+const STAR = '<svg viewBox="0 0 48 48"><path class="star" d="M24 3l6.2 13.3 14.6 1.6-10.9 9.8 3.1 14.4L24 34.8 11 42.1l3.1-14.4L3.2 17.9l14.6-1.6z" stroke="var(--line)" stroke-width="2" stroke-linejoin="round"/></svg>';
+function renderMissions() {
+  $('mis').innerHTML = MISSIONS.map(m => `<li class="${done.has(m.id) ? 'done' : ''}" id="m-${m.id}">${STAR}<span>${m.t}${m.goal && !done.has(m.id) ? ` <em class="prog-n">${Math.min(stats.manual, m.goal)}/${m.goal}</em>` : ''}</span></li>`).join('');
+  const n = done.size, all = MISSIONS.length;
+  $('misN').textContent = `${n} / ${all}`;
+  $('sStars').textContent = `${n}/${all}`;
+  $('sBar').style.width = (n / all * 100) + '%';
+}
+function clear(id) {
+  if (done.has(id)) return;
+  done.add(id); store.set('done', [...done]);
+  const m = MISSIONS.find(x => x.id === id);
+  renderMissions();
+  const li = $('m-' + id);
+  if (li && !reduceMotion) li.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.06)' }, { transform: 'scale(1)' }], { duration: 400 });
+  const all = done.size === MISSIONS.length;
+  toast(all ? 'ぜんぶクリア！ CPU マスター！' : 'ミッションクリア！', m.t);
+  confetti(all ? 260 : 120);
+  fanfare();
+}
+let toastTimer;
+function toast(t, s) {
+  $('toastT').textContent = t; $('toastS').textContent = s;
+  $('toast').classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => $('toast').classList.remove('show'), 2600);
+}
+// 紙ふぶき
+const cv = $('confetti'), cx = cv.getContext('2d');
+let parts = [], confRun = false;
+function confetti(n) {
+  if (reduceMotion) return;
+  cv.width = innerWidth * devicePixelRatio; cv.height = innerHeight * devicePixelRatio;
+  const cols = ['#4C97FF', '#59C059', '#FF8C1A', '#FFAB19', '#9966FF', '#FF6680', '#5CB1D6', '#FFD500'];
+  for (let i = 0; i < n; i++) parts.push({
+    x: innerWidth / 2 + (Math.random() - .5) * 200, y: 90, vx: (Math.random() - .5) * 14, vy: -Math.random() * 12 - 3,
+    r: Math.random() * Math.PI, vr: (Math.random() - .5) * .4, w: 6 + Math.random() * 6, h: 4 + Math.random() * 6, c: cols[i % cols.length], life: 0,
+  });
+  if (!confRun) { confRun = true; requestAnimationFrame(confTick); }
+}
+function confTick() {
+  const d = devicePixelRatio;
+  cx.clearRect(0, 0, cv.width, cv.height);
+  parts = parts.filter(p => p.life < 180 && p.y < innerHeight + 20);
+  for (const p of parts) {
+    p.life++; p.vy += .35; p.vx *= .99; p.x += p.vx; p.y += p.vy; p.r += p.vr;
+    cx.save(); cx.translate(p.x * d, p.y * d); cx.rotate(p.r); cx.fillStyle = p.c;
+    cx.fillRect(-p.w * d / 2, -p.h * d / 2, p.w * d, p.h * d); cx.restore();
+  }
+  if (parts.length) requestAnimationFrame(confTick); else { confRun = false; cx.clearRect(0, 0, cv.width, cv.height); }
+}
+// コンボ
+let comboN = 0, comboT = 0, comboTimer;
+function combo() {
+  const now = performance.now();
+  comboN = now - comboT < 1200 ? comboN + 1 : 1; comboT = now;
+  const c = $('combo');
+  if (comboN >= 3) {
+    c.textContent = `COMBO x${comboN}`;
+    c.classList.remove('show'); void c.offsetWidth; c.classList.add('show');
+    if (comboN % 10 === 0) { tone(988, .1, 'square', .05); tone(1319, .18, 'square', .05, .08); confetti(40); }
+  }
+  clearTimeout(comboTimer); comboTimer = setTimeout(() => c.classList.remove('show'), 1300);
+}
+
+// ============================================================
+//  実行
+// ============================================================
+const SPEEDS = [
+  { hz: 2,    anim: 380, name: 'かめ' },
+  { hz: 12,   anim: 70,  name: 'うさぎ' },
+  { hz: 1000, anim: 0,   name: 'ロケット' },
+];
+let speed = 0, running = false, acc = 0, lastT = 0;
+function afterStep(ev) {
+  stats.steps++;
+  if (ev.jz) clear('jz');
+  if (ev.write && ev.addr === 0x7f && (ev.value & 63) !== ev.ledBefore) {
+    if (cpu.btn === 1) clear('m1'); else if (cpu.btn === 2) clear('m2'); else if (cpu.btn === 3) clear('m3');
+  }
+}
+function doStep(manual) {
+  const ev = cpuStep();
+  afterStep(ev);
+  const sp = SPEEDS[speed];
+  render(ev, { smooth: manual });
+  shoot(ev, manual ? 420 : sp.anim);
+  const bno = basicAt[ev.pc];
+  const ln = bno != null && prog.compiled ? prog.compiled.lines.find(x => x.no === bno) : null;
+  say((ln ? `<span class="bline">${ln.no}  ${esc(ln.text)}</span><br>` : '') + explain(ev));
+  if (ev.jump) popJump(ev.addr === 0x11 ? 'JZ ジャンプ！' : 'ジャンプ！');
+  if (manual || sp.hz <= 12) sfx(ev);
+  return ev;
+}
+function loop(t) {
+  if (!running) return;
+  const dt = Math.min(.1, (t - lastT) / 1000); lastT = t;
+  const sp = SPEEDS[speed];
+  acc += dt * sp.hz;
+  let n = Math.floor(acc); acc -= n;
+  if (sp.hz <= 12) {
+    for (let i = 0; i < n && running; i++) {
+      doStep(false);
+      if (bps.has(cpu.pc)) { hitBp(); break; }
+    }
+  } else if (n > 0) {
+    let ev, ledWas = cpu.led;
+    for (let i = 0; i < n; i++) {
+      ev = cpuStep(); afterStep(ev);
+      if (bps.has(cpu.pc)) { render(ev, {}); hitBp(); return; }
+    }
+    render(ev, { noScroll: true });
+    if (cpu.led !== ledWas) tone(1200 + cpu.led * 8, .05, 'triangle', .04);
+  }
+  requestAnimationFrame(loop);
+}
+function hitBp() {
+  setRun(false);
+  clear('bp');
+  say(`<b>${hex2(cpu.pc)} 番地</b> のブレークポイントで止まったよ！ 「1つすすむ」で1命令ずつ見てみよう。`);
+  tone(220, .2, 'sawtooth', .05);
+}
+function setRun(on) {
+  running = on;
+  $('bRun').classList.toggle('on', on);
+  if (on) {
+    clear('run');
+    lastT = performance.now(); acc = 0;
+    if (SPEEDS[speed].hz >= 1000) say('ロケットモード！ 本物のボードと同じ <b>1秒に1000命令</b> で動いてるよ。S1・S2 をおしてみて！');
+    requestAnimationFrame(loop);
+  } else {
+    T.ball.setAttribute('cx', -40);
+    render(null, {});
+  }
+}
+
+// ============================================================
+//  プログラムの読みこみ
+// ============================================================
+function load(src, lg, keepMsg) {
+  const r = lg === 'basic' ? TBASIC.build(src, TTA8ASM) : TTA8ASM.assemble(src);
+  const errBox = lg === 'basic' ? 'berrs' : 'errs';
+  if (r.errors.length) {
+    $(errBox).textContent = r.errors.map(e => lg === 'basic' ? e : 'ぎょう ' + e).join('\n');
+    say('くみたて失敗…。下の <b>赤い文字</b> を見て 直してね。');
+    tone(180, .25, 'sawtooth', .05);
+    return false;
+  }
+  $('errs').textContent = ''; $('berrs').textContent = '';
+  prog = r; rom = Uint8Array.from(r.rom); lang = lg;
+  bps.clear(); basicAt = []; firstAddr = {};
+  if (lg === 'basic') {
+    basicSrc = src;
+    for (const it of r.items) {
+      const b = r.compiled.basicOf[it.line];
+      if (b == null) continue;
+      for (let k = 0; k < it.bytes.length; k++) basicAt[it.addr + k] = b;
+      if (firstAddr[b] == null) firstAddr[b] = it.addr;
+    }
+    $('src').value = r.compiled.asm;
+  } else {
+    basicSrc = '';
+    $('src').value = src;
+  }
+  $('asmnote').hidden = lg !== 'basic';
+  setRun(false);
+  cpuReset(); stats.steps = 0;
+  renderBlocks(); renderBView(); render(null, {});
+  if (!keepMsg) say('プログラムを読みこんだよ。みどりの旗の「スタート」か「1つすすむ」をおしてね。');
+  return true;
+}
+function setEditing(on) {
+  editing = on;
+  $('bsrc').hidden = !on; $('bview').hidden = on;
+  $('bEdit').textContent = on ? 'やめる' : 'かきかえる';
+  $('bnote').textContent = on ? '書きおわったら「くみたてる」' : '行をクリックで ブレークポイント';
+  if (on) { $('bsrc').value = basicSrc || '10 REM ここに BASIC を書いてね\n20 OUT 0b000001\n30 END\n'; $('bsrc').focus(); }
+}
+const isSample = (src) => Object.values(SAMPLES).some(x => x.src === src);
+function showTab(which) {
+  for (const [id, pane] of [['tBlocks', 'blocks'], ['tBasic', 'basic'], ['tText', 'editor']]) {
+    $(id).setAttribute('aria-selected', id === which);
+    $(pane).hidden = id !== which;
+  }
+}
+
+// ============================================================
+//  ボタン操作
+// ============================================================
+const held = [false, false], locked = [false, false];
+function setBtn(i, on) {
+  if ($('lock').checked) { if (on) locked[i] = !locked[i]; else return; }
+  else held[i] = on;
+  const v = (held[i] || locked[i]);
+  cpu.btn = (cpu.btn & ~(1 << i)) | (v ? 1 << i : 0);
+  B.btn[i].classList.toggle('down', v);
+  B.btn[i].setAttribute('aria-pressed', v);
+  if (on) brd.classList.add('tried');
+  if (on) { audio(); tone(v ? 500 : 300, .04, 'square', .03); }
+  if (!running) render(null, { noScroll: true });
+}
+function bindHold(elm, i) {
+  elm.addEventListener('pointerdown', (e) => { e.preventDefault(); try { elm.setPointerCapture(e.pointerId); } catch (x) {} setBtn(i, true); });
+  const up = () => { if (!$('lock').checked && held[i]) setBtn(i, false); };
+  elm.addEventListener('pointerup', up); elm.addEventListener('pointercancel', up); elm.addEventListener('lostpointercapture', up);
+}
+
+// プログラム欄の幅 (ドラッグで変える / ダブルクリックで元にもどす)
+function initSplit() {
+  const app = document.querySelector('.app'), sp = $('split'), DEF = 440;
+  let want = DEF;                                   // 利用者がえらんだ幅
+  const clamp = (w) => Math.round(Math.max(260, Math.min(w, app.clientWidth * .7, 1000)));
+  const set = (w, save) => {
+    want = w;
+    const c = app.clientWidth > 500 ? clamp(w) : w;  // せまい画面では1列なので気にしない
+    app.style.setProperty('--prog-w', c + 'px'); sp.setAttribute('aria-valuenow', c);
+    if (save) store.set('progW', Math.round(w));
+  };
+  const saved = store.get('progW', null);
+  if (saved) set(saved, false);
+  sp.addEventListener('pointerdown', (e) => {
+    e.preventDefault(); sp.classList.add('drag');
+    try { sp.setPointerCapture(e.pointerId); } catch (x) {}
+    const left = app.getBoundingClientRect().left + parseFloat(getComputedStyle(app).paddingLeft);
+    const move = (ev) => set(clamp(ev.clientX - left - 6), false);
+    const up = () => {
+      sp.classList.remove('drag');
+      sp.removeEventListener('pointermove', move); sp.removeEventListener('pointerup', up); sp.removeEventListener('pointercancel', up);
+      store.set('progW', Math.round(want));
+    };
+    sp.addEventListener('pointermove', move); sp.addEventListener('pointerup', up); sp.addEventListener('pointercancel', up);
+  });
+  sp.addEventListener('keydown', (e) => {
+    const cur = parseInt(app.style.getPropertyValue('--prog-w')) || want;
+    if (e.key === 'ArrowLeft') { e.preventDefault(); set(cur - 30, true); }
+    if (e.key === 'ArrowRight') { e.preventDefault(); e.stopPropagation(); set(cur + 30, true); }
+  });
+  sp.addEventListener('dblclick', () => set(DEF, true));
+  addEventListener('resize', () => set(want, false));
+}
+
+function init() {
+  // ---- ボード用に保存 : program.hex (256行) をダウンロード ----
+  $('bSave').addEventListener('click', () => {
+    if (!prog) return;
+    const txt = Array.from({ length: 256 }, (_, i) => hex2(rom[i] || 0)).join('\n') + '\n';
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([txt], { type: 'text/plain' }));
+    a.download = 'program.hex'; document.body.appendChild(a); a.click(); a.remove();
+    say('<b>program.hex</b> を保存したよ。<b>hdl</b> フォルダに入れて、<b>4_build</b> → <b>2_write_sram</b> でボードに書きこもう！');
+  });
+  buildDiagram(); buildBoard(); renderMissions(); updSound();
+  B.btn.forEach((g, i) => bindHold(g, i));
+  $('lock').addEventListener('change', () => {
+    held[0] = held[1] = locked[0] = locked[1] = false; cpu.btn = 0;
+    B.btn.forEach(g => { g.classList.remove('down'); g.setAttribute('aria-pressed', 'false'); });
+  });
+  $('bRun').addEventListener('click', () => { audio(); setRun(true); });
+  $('bStop').addEventListener('click', () => { setRun(false); say('とまったよ。「1つすすむ」で1命令ずつ見られるよ。'); });
+  $('bStep').addEventListener('click', () => {
+    audio(); if (running) setRun(false);
+    stats.manual++; doStep(true); combo();
+    if (!done.has('step')) { if (stats.manual >= 10) clear('step'); else renderMissions(); }
+  });
+  $('bReset').addEventListener('click', () => { setRun(false); cpuReset(); stats.steps = 0; render(null, {}); say('さいしょ (0 番地) にもどったよ。'); });
+  document.querySelectorAll('.speed button').forEach(b => b.addEventListener('click', () => {
+    speed = +b.dataset.sp;
+    document.querySelectorAll('.speed button').forEach(x => x.setAttribute('aria-pressed', x === b));
+    if (running && SPEEDS[speed].hz >= 1000) say('ロケットモード！ 本物のボードと同じ <b>1秒に1000命令</b> で動いてるよ。');
+    else say(`はやさを「${SPEEDS[speed].name}」にしたよ。1秒に ${SPEEDS[speed].hz} 命令。`);
+  }));
+  $('bSound').addEventListener('click', () => { soundOn = !soundOn; store.set('sound', soundOn); audio(); updSound(); tone(660, .06); });
+  $('tBlocks').addEventListener('click', () => showTab('tBlocks'));
+  $('tText').addEventListener('click', () => showTab('tText'));
+  $('tBasic').addEventListener('click', () => showTab('tBasic'));
+  const sel = $('sample');
+  for (const [lg, title] of [['basic', 'BASIC'], ['asm', 'アセンブリ']]) {
+    const g = document.createElement('optgroup'); g.label = title;
+    for (const k in SAMPLES) if (SAMPLES[k].lang === lg) { const o = document.createElement('option'); o.value = k; o.textContent = SAMPLES[k].name; g.appendChild(o); }
+    sel.appendChild(g);
+  }
+  sel.addEventListener('change', () => { const x = SAMPLES[sel.value]; setEditing(false); load(x.src, x.lang); });
+  $('bEdit').addEventListener('click', () => setEditing(!editing));
+  $('bComp').addEventListener('click', () => {
+    audio();
+    const src = editing ? $('bsrc').value : basicSrc;
+    if (!src) { setEditing(true); return; }
+    if (load(src, 'basic', true)) {
+      say(`くみたて成功！ BASIC が <b>${prog.size} バイト</b> の機械語になったよ。「ブロック」タブで中身を見てみよう。`);
+      tone(784, .08, 'square', .05); tone(1047, .12, 'square', .05, .08);
+      if (!isSample(src)) clear('asm');
+      setEditing(false);
+    }
+  });
+  $('bAsm').addEventListener('click', () => {
+    audio();
+    const changed = !isSample($('src').value) && !(prog && prog.compiled && prog.compiled.asm === $('src').value);
+    if (load($('src').value, 'asm', true)) {
+      say(`くみたて成功！ <b>${prog.size} バイト</b> の機械語ができたよ。`);
+      tone(784, .08, 'square', .05); tone(1047, .12, 'square', .05, .08);
+      if (changed) clear('asm');
+      showTab('tBlocks');
+    }
+  });
+  addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'TEXTAREA' || e.repeat) return;
+    if (e.key === '1' || e.key === '2') setBtn(e.key === '1' ? 0 : 1, true);
+    else if (e.key === 'ArrowRight' && e.target.id !== 'split') { e.preventDefault(); $('bStep').click(); }
+    else if (e.key === ' ' && e.target === document.body) { e.preventDefault(); audio(); setRun(!running); }
+  });
+  addEventListener('keyup', (e) => {
+    if (e.target.tagName === 'TEXTAREA') return;
+    if ((e.key === '1' || e.key === '2') && !$('lock').checked) setBtn(e.key === '1' ? 0 : 1, false);
+  });
+  initSplit();
+  sel.value = 'flasher_bas';
+  load(SAMPLES.flasher_bas.src, 'basic');
+}
+init();
+window.TTA8LAB = { cpu, cpuStep, cpuReset, load };   // テスト用
+})();
+</script>
+
+</body>
+</html>

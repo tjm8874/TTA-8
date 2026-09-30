@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8">
+<style>
+  html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: #1B1D2C; }
+  svg { display: block; }
+  text { font-family: "Noto Sans CJK JP", "Noto Sans JP", "Hiragino Sans", "Yu Gothic UI", "Meiryo", sans-serif; }
+  .mono { font-family: "Noto Sans Mono CJK JP", Consolas, Menlo, monospace; }
+</style></head>
+<body>
+<svg id="s" width="1920" height="1080" viewBox="0 0 1920 1080" xmlns="http://www.w3.org/2000/svg"></svg>
+<script>
+// ============================================================
+//  TTA-8 紹介動画の 素材アニメ。window.render(t秒) で 1コマ描く
+// ============================================================
+const NS = 'http://www.w3.org/2000/svg';
+const S = document.getElementById('s');
+const C = { bg: '#1B1D2C', bg2: '#262940', ink: '#ECEEFB', soft: '#A6ABCD', top: '#855CD6', pink: '#E64D8C',
+  num: '#4C97FF', alu: '#59C059', var: '#FF8C1A', jump: '#FFAB19', in: '#5CB1D6', out: '#9966FF', core: '#FF6680',
+  rom: '#CF63CF', ledOn: '#FFB020', ledOff: '#4A3A22', glow: '#FFD500' };
+function el(tag, a = {}, parent = S, text) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in a) e.setAttribute(k, a[k]);
+  if (text != null) e.textContent = text;
+  parent.appendChild(e); return e;
+}
+const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
+const ease = (x) => { x = clamp(x); return x < .5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2; };
+const back = (x) => { x = clamp(x); const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+const fade = (t, a, b) => clamp((t - a) / (b - a));
+function bgGrad() {
+  const d = el('defs');
+  const g = el('linearGradient', { id: 'bgg', x1: 0, y1: 0, x2: 0, y2: 1 }, d);
+  el('stop', { offset: 0, 'stop-color': '#2A2350' }, g); el('stop', { offset: 1, 'stop-color': '#1B1D2C' }, g);
+  const f = el('filter', { id: 'blur', x: '-50%', y: '-50%', width: '200%', height: '200%' }, d);
+  el('feGaussianBlur', { stdDeviation: 14 }, f);
+  el('rect', { width: 1920, height: 1080, fill: 'url(#bgg)' });
+}
+function chip(g, x, y, s) {   // TTA-8 のチップ ロゴ
+  const k = el('g', { transform: `translate(${x},${y}) scale(${s})` }, g);
+  for (let i = 0; i < 5; i++) {
+    for (const [dx, dy, w, h] of [[-70 + i * 30 - 6, -118, 12, 30], [-70 + i * 30 - 6, 88, 12, 30], [-118, -70 + i * 30 - 6, 30, 12], [88, -70 + i * 30 - 6, 30, 12]])
+      el('rect', { x: dx, y: dy, width: w, height: h, rx: 4, fill: '#B9A8F0' }, k);
+  }
+  el('rect', { x: -95, y: -95, width: 190, height: 190, rx: 30, fill: C.top }, k);
+  el('rect', { x: -75, y: -75, width: 150, height: 150, rx: 20, fill: '#6B45BF' }, k);
+  el('text', { x: 0, y: 18, 'text-anchor': 'middle', 'font-size': 56, 'font-weight': 900, fill: '#fff' }, k, 'TTA-8');
+  return k;
+}
+function leds(g, x, y, n, gap, r) {
+  const L = [];
+  for (let i = 0; i < n; i++) {
+    const cx = x + i * gap;
+    const glow = el('circle', { cx, cy: y, r: r * 2, fill: C.ledOn, opacity: 0, filter: 'url(#blur)' }, g);
+    const body = el('rect', { x: cx - r, y: y - r * .7, width: r * 2, height: r * 1.4, rx: r * .3, fill: C.ledOff }, g);
+    L.push({ glow, body });
+  }
+  return (v) => L.forEach((l, i) => { const on = (v >> (n - 1 - i)) & 1; l.glow.setAttribute('opacity', on ? .9 : 0); l.body.setAttribute('fill', on ? '#FFF3C4' : C.ledOff); });
+}
+
+// ------------------------------------------------------------
+const SCENES = {};
+
+// ---- タイトル (動画ごと) ----------------------------------------
+const TITLES = {
+  title1: ['CPU の 基本が わかる！', 'CPU は なにを しているの？'],
+  title2: ['8bit の 小さい CPU を 作ろう', '命令は READ と WRITE の 2つだけ'],
+  title3: ['動かしてみよう！', 'Tang Nano 20K で LED を 光らせる'],
+};
+for (const k in TITLES) SCENES[k] = {
+  dur: 4, init() {
+    bgGrad();
+    this.logo = el('g'); chip(this.logo, 0, 0, 1);
+    this.t1 = el('text', { x: 960, y: 700, 'text-anchor': 'middle', 'font-size': 96, 'font-weight': 900, fill: '#fff' }, S, TITLES[k][0]);
+    this.t2 = el('text', { x: 960, y: 790, 'text-anchor': 'middle', 'font-size': 44, 'font-weight': 700, fill: C.soft }, S, TITLES[k][1]);
+    this.bar = el('rect', { x: 960, y: 830, width: 0, height: 10, rx: 5, fill: C.pink });
+  },
+  render(t) {
+    const s = back(t / .7);
+    this.logo.setAttribute('transform', `translate(960,${380 - 40 * (1 - s)}) scale(${s}) rotate(${(1 - s) * -30})`);
+    this.t1.setAttribute('opacity', fade(t, .5, 1)); this.t1.setAttribute('y', 700 + 30 * (1 - ease(fade(t, .5, 1))));
+    this.t2.setAttribute('opacity', fade(t, .9, 1.4));
+    const w = 700 * ease(fade(t, 1.2, 1.9)); this.bar.setAttribute('x', 960 - w / 2); this.bar.setAttribute('width', w);
+  },
+};
+
+// ---- CPU は 「よむ → やる → もどる」 -----------------------------------
+SCENES.cpu_loop = {
+  dur: 10, init() {
+    bgGrad();
+    el('text', { x: 960, y: 150, 'text-anchor': 'middle', 'font-size': 64, 'font-weight': 900, fill: '#fff' }, S, 'CPU が やっていること');
+    const P = [[960, 330, 'よむ', '命令を 読む', C.num], [1260, 720, 'やる', '命令を 実行', C.alu], [660, 720, 'もどる', 'つぎの 命令へ', C.jump]];
+    this.P = P;
+    el('circle', { cx: 960, cy: 590, r: 300, fill: 'none', stroke: '#3D4166', 'stroke-width': 14, 'stroke-dasharray': '4 26', 'stroke-linecap': 'round' });
+    this.nodes = P.map(([x, y, a, b, c]) => {
+      const g = el('g', { transform: `translate(${x},${y})` });
+      const ring = el('circle', { r: 130, fill: C.glow, opacity: 0, filter: 'url(#blur)' }, g);
+      el('circle', { r: 110, fill: c }, g);
+      el('text', { y: 12, 'text-anchor': 'middle', 'font-size': 58, 'font-weight': 900, fill: '#fff' }, g, a);
+      el('text', { y: 60, 'text-anchor': 'middle', 'font-size': 24, 'font-weight': 700, fill: '#fff', opacity: .9 }, g, b);
+      return { g, ring };
+    });
+    this.dot = el('circle', { r: 22, fill: '#fff' });
+    this.count = el('text', { x: 960, y: 610, 'text-anchor': 'middle', 'font-size': 64, 'font-weight': 900, fill: '#fff' }, S, '0');
+    el('text', { x: 960, y: 655, 'text-anchor': 'middle', 'font-size': 26, 'font-weight': 700, fill: C.soft }, S, '回');
+    this.cap = el('text', { x: 960, y: 1010, 'text-anchor': 'middle', 'font-size': 46, 'font-weight': 800, fill: C.glow, opacity: 0 }, S, 'スマホの CPU は これを 1秒に 何十億回！');
+  },
+  render(t) {
+    // 回る速さ: はじめ ゆっくり → どんどん 速く
+    const phase = t < 5 ? t / 1.5 : 5 / 1.5 + (Math.pow(t - 5, 2.2) * 2.5);
+    const k = phase % 3, i = Math.floor(k), f = k - i;
+    const [x1, y1] = this.P[i], [x2, y2] = this.P[(i + 1) % 3];
+    const e = ease(f);
+    this.dot.setAttribute('cx', x1 + (x2 - x1) * e); this.dot.setAttribute('cy', y1 + (y2 - y1) * e);
+    this.nodes.forEach((n, j) => n.ring.setAttribute('opacity', j === i ? .8 * (1 - f) : 0));
+    const n = Math.floor(phase / 3 * (t < 5 ? 1 : 1 + Math.pow(t - 5, 4) * 400));
+    this.count.textContent = n.toLocaleString();
+    this.cap.setAttribute('opacity', fade(t, 6, 7));
+  },
+};
+
+// ---- 2進数 カウンター -------------------------------------------------
+SCENES.binary = {
+  dur: 12, init() {
+    bgGrad();
+    el('text', { x: 960, y: 150, 'text-anchor': 'middle', 'font-size': 64, 'font-weight': 900, fill: '#fff' }, S, 'コンピューターの 中は 0 と 1 だけ');
+    const W = [32, 16, 8, 4, 2, 1];
+    W.forEach((w, i) => el('text', { x: 510 + i * 180, y: 330, 'text-anchor': 'middle', 'font-size': 40, 'font-weight': 800, fill: C.soft }, S, w));
+    this.setLed = leds(el('g'), 510, 450, 6, 180, 48);
+    this.bits = W.map((w, i) => el('text', { x: 510 + i * 180, y: 610, 'text-anchor': 'middle', 'font-size': 84, 'font-weight': 900, fill: '#fff', class: 'mono' }, S, '0'));
+    this.dec = el('text', { x: 960, y: 820, 'text-anchor': 'middle', 'font-size': 150, 'font-weight': 900, fill: C.ledOn }, S, '0');
+    this.cap = el('text', { x: 960, y: 960, 'text-anchor': 'middle', 'font-size': 40, 'font-weight': 700, fill: C.soft }, S, '光る = 1　消える = 0');
+  },
+  render(t) {
+    // 0〜3.5秒: 0,1,2,3 をゆっくり → 42 を見せる → 0..63 を高速
+    let v;
+    if (t < 4) v = Math.min(3, Math.floor(t / 1));
+    else if (t < 7) v = 42;
+    else v = Math.min(63, Math.floor((t - 7) * 14));
+    if (t >= 11.5) v = 63;
+    this.setLed(v);
+    this.bits.forEach((b, i) => { const on = (v >> (5 - i)) & 1; b.textContent = on; b.setAttribute('fill', on ? C.ledOn : '#5A5F85'); });
+    this.dec.textContent = v;
+    this.cap.textContent = (t >= 4 && t < 7) ? '101010 = 32 + 8 + 2 = 42' : (t >= 7 ? '6bit で 0 〜 63、8bit なら 0 〜 255' : '光る = 1　消える = 0');
+  },
+};
+
+// ---- READ / WRITE で 3 + 5 ---------------------------------------------
+SCENES.readwrite = {
+  dur: 20, init() {
+    bgGrad();
+    el('text', { x: 960, y: 90, 'text-anchor': 'middle', 'font-size': 54, 'font-weight': 900, fill: '#fff' }, S, 'READ と WRITE だけで 3 + 5');
+    // code
+    this.code = ['READ  IMM, 3', 'WRITE ALU_A', 'READ  IMM, 5', 'WRITE ALU_B', 'READ  ALU_ADD', 'WRITE OUT'];
+    el('rect', { x: 60, y: 160, width: 520, height: 520, rx: 28, fill: C.bg2 });
+    this.hl = el('rect', { x: 76, y: 196, width: 488, height: 64, rx: 14, fill: C.glow, opacity: .25 });
+    this.lines = this.code.map((c, i) => el('text', { x: 100, y: 240 + i * 76, 'font-size': 40, 'font-weight': 700, fill: c.startsWith('READ') ? '#FF9FB0' : '#9EC6FF', class: 'mono' }, S, c));
+    // parts
+    const P = { IMM: [760, 220, C.num, 'IMM (かず)'], A: [1060, 220, C.alu, 'ALU_A'], B: [1300, 220, C.alu, 'ALU_B'], ADD: [1540, 220, C.alu, 'ALU_ADD'], OUT: [1540, 820, C.out, 'OUT (LED)'] };
+    this.P = P; this.vals = {};
+    el('rect', { x: 700, y: 470, width: 1160, height: 22, rx: 11, fill: '#4A4F78' });
+    el('text', { x: 1850, y: 530, 'text-anchor': 'end', 'font-size': 26, 'font-weight': 700, fill: C.soft }, S, 'バス (データの通り道)');
+    for (const k in P) {
+      const [x, y, c, n] = P[k];
+      el('line', { x1: x + 100, y1: k === 'OUT' ? y : y + 150, x2: x + 100, y2: 481, stroke: '#4A4F78', 'stroke-width': 12 });
+      el('rect', { x, y, width: 200, height: 150, rx: 24, fill: C.bg2, stroke: c, 'stroke-width': 8 });
+      el('text', { x: x + 100, y: y + 50, 'text-anchor': 'middle', 'font-size': 28, 'font-weight': 800, fill: c }, S, n);
+      this.vals[k] = el('text', { x: x + 100, y: y + 118, 'text-anchor': 'middle', 'font-size': 60, 'font-weight': 900, fill: '#fff' }, S, '');
+    }
+    this.vals.ADD.setAttribute('font-size', 44);
+    // V
+    el('line', { x1: 1060, y1: 481, x2: 1060, y2: 800, stroke: '#4A4F78', 'stroke-width': 12 });
+    el('rect', { x: 940, y: 790, width: 240, height: 170, rx: 28, fill: C.bg2, stroke: C.core, 'stroke-width': 10 });
+    el('text', { x: 1060, y: 845, 'text-anchor': 'middle', 'font-size': 34, 'font-weight': 900, fill: C.core }, S, 'V (はこびや)');
+    this.vv = el('text', { x: 1060, y: 928, 'text-anchor': 'middle', 'font-size': 72, 'font-weight': 900, fill: '#fff' }, S, '0');
+    this.setLed = leds(el('g'), 1575, 1010, 6, 26, 10);
+    this.ball = el('circle', { r: 26, fill: C.glow });
+    this.ballT = el('text', { 'text-anchor': 'middle', 'font-size': 30, 'font-weight': 900, fill: '#3E4466' }, S, '');
+    this.cap = el('text', { x: 320, y: 790, 'text-anchor': 'middle', 'font-size': 38, 'font-weight': 800, fill: '#fff' }, S, '');
+    this.cap2 = el('text', { x: 320, y: 845, 'text-anchor': 'middle', 'font-size': 28, 'font-weight': 700, fill: C.soft }, S, '');
+  },
+  render(t) {
+    const STEP = 3, i = Math.min(5, Math.floor(Math.max(0, t - 1) / STEP)), f = clamp(((t - 1) % STEP) / 1.6);
+    const started = t >= 1, done = t >= 1 + STEP * 6;
+    const port = (k) => { const [x, y] = this.P[k]; return [x + 100, k === 'OUT' ? y : y + 150]; };
+    const Vp = [1060, 790], bus = 481;
+    // 状態
+    const st = { IMM: '', A: '', B: '', ADD: '', OUT: '', V: 0, led: 0 };
+    const seq = [['IMM', 'R', 3], ['A', 'W', 3], ['IMM', 'R', 5], ['B', 'W', 5], ['ADD', 'R', 8], ['OUT', 'W', 8]];
+    const upto = done ? 6 : (started ? i + (f >= 1 ? 1 : 0) : 0);
+    for (let j = 0; j < upto; j++) { const [k, rw, v] = seq[j]; if (rw === 'R') st.V = v; else { st[k] = v; if (k === 'OUT') st.led = v; } }
+    if (upto > 1) st.A = 3; if (upto > 3) st.B = 5;
+    st.ADD = (st.A !== '' && st.B !== '') ? `${st.A}+${st.B}=${st.A + st.B}` : (st.A !== '' ? `${st.A}+0=${st.A}` : '');
+    st.IMM = started && !done ? (i < 2 ? 3 : (i < 4 ? 5 : '')) : '';
+    for (const k of ['IMM', 'A', 'B', 'ADD', 'OUT']) this.vals[k].textContent = st[k];
+    this.vv.textContent = st.V; this.setLed(st.led);
+    this.hl.setAttribute('y', 196 + i * 76); this.hl.setAttribute('opacity', started && !done ? .28 : 0);
+    // ball
+    if (started && !done && f < 1) {
+      const [k, rw, v] = seq[i]; const [px, py] = port(k);
+      const path = rw === 'R' ? [[px, py], [px, bus], [1060, bus], Vp] : [Vp, [1060, bus], [px, bus], [px, py]];
+      const L = path.slice(1).map((p, j) => Math.hypot(p[0] - path[j][0], p[1] - path[j][1])); const tot = L.reduce((a, b) => a + b, 0);
+      let d = ease(f) * tot, j = 0; while (j < L.length - 1 && d > L[j]) { d -= L[j]; j++; }
+      const q = d / L[j], x = path[j][0] + (path[j + 1][0] - path[j][0]) * q, y = path[j][1] + (path[j + 1][1] - path[j][1]) * q;
+      this.ball.setAttribute('cx', x); this.ball.setAttribute('cy', y); this.ball.setAttribute('opacity', 1);
+      this.ballT.setAttribute('x', x); this.ballT.setAttribute('y', y + 11); this.ballT.textContent = v;
+      this.ball.setAttribute('fill', rw === 'R' ? '#FF9FB0' : '#9EC6FF');
+    } else { this.ball.setAttribute('opacity', 0); this.ballT.textContent = ''; }
+    const caps = [['READ = よむ', '部品 → V'], ['WRITE = かく', 'V → 部品'], ['READ = よむ', 'つぎの 数も 取ってくる'], ['WRITE = かく', 'B に わたす'], ['READ ALU_ADD', '答えは もう できている！'], ['WRITE OUT', 'LED に 8 = 001000']];
+    const c = done ? ['できた！', '運んだ だけで 計算できた'] : (started ? caps[i] : ['', '']);
+    this.cap.textContent = c[0]; this.cap2.textContent = c[1];
+  },
+};
+
+// ---- 51 行 --------------------------------------------------------------
+SCENES.code51 = {
+  dur: 9, init() {
+    bgGrad();
+    this.lines = CODE;
+    this.g = el('g');
+    this.items = CODE.map((l, i) => el('text', { x: 120, y: 200 + i * 44, 'font-size': 32, fill: '#C9CFE8', class: 'mono', style: 'white-space:pre' }, this.g, l));
+    el('rect', { x: 0, y: 0, width: 1920, height: 150, fill: '#221F3E' });
+    el('rect', { x: 0, y: 950, width: 1920, height: 130, fill: '#1B1D2C', opacity: .92 });
+    el('text', { x: 120, y: 100, 'font-size': 48, 'font-weight': 900, fill: '#fff' }, S, 'hdl/tta8.v ― TTA-8 の 設計図 (Verilog)');
+    el('rect', { x: 1340, y: 300, width: 480, height: 420, rx: 40, fill: C.top, opacity: .95 });
+    el('text', { x: 1580, y: 400, 'text-anchor': 'middle', 'font-size': 44, 'font-weight': 800, fill: '#fff' }, S, 'CPU ぜんぶで');
+    this.n = el('text', { x: 1580, y: 600, 'text-anchor': 'middle', 'font-size': 220, 'font-weight': 900, fill: '#fff' }, S, '0');
+    el('text', { x: 1580, y: 680, 'text-anchor': 'middle', 'font-size': 52, 'font-weight': 900, fill: C.glow }, S, '行');
+    el('text', { x: 960, y: 1030, 'text-anchor': 'middle', 'font-size': 32, 'font-weight': 700, fill: C.soft }, S, '(コメントと 空行を のぞく)');
+  },
+  render(t) {
+    const k = Math.min(51, Math.floor(t / 7 * 51));
+    const scroll = Math.max(0, (k - 17) * 44);
+    this.g.setAttribute('transform', `translate(0,${-scroll})`);
+    this.items.forEach((e, i) => e.setAttribute('fill', i < k ? '#ECEEFB' : '#3D4166'));
+    this.n.textContent = k;
+  },
+};
+
+// ---- LED の 模様 4つ -----------------------------------------------------
+SCENES.patterns = {
+  dur: 16, init() {
+    bgGrad();
+    this.title = el('text', { x: 960, y: 170, 'text-anchor': 'middle', 'font-size': 72, 'font-weight': 900, fill: '#fff' }, S, '');
+    this.setLed = leds(el('g'), 610, 540, 6, 140, 44);
+    this.b1 = el('circle', { cx: 700, cy: 830, r: 60, fill: '#C9CBD3' }); el('text', { x: 700, y: 945, 'text-anchor': 'middle', 'font-size': 44, 'font-weight': 900, fill: '#fff' }, S, 'S1');
+    this.b2 = el('circle', { cx: 1220, cy: 830, r: 60, fill: '#C9CBD3' }); el('text', { x: 1220, y: 945, 'text-anchor': 'middle', 'font-size': 44, 'font-weight': 900, fill: '#fff' }, S, 'S2');
+    this.pat = el('text', { x: 960, y: 370, 'text-anchor': 'middle', 'font-size': 48, 'font-weight': 700, fill: C.soft, class: 'mono' }, S, '');
+  },
+  render(t) {
+    const M = [['なにも おさない', 0, [1, 0]], ['S1 : 右から 左へ', 1, [1, 2, 4, 8, 16, 32]], ['S2 : 外から 内へ', 2, [33, 18, 12]], ['S1 + S2 : 交互に 点滅', 3, [42, 21]]];
+    const m = Math.min(3, Math.floor(t / 4)), [name, btn, seq] = M[m];
+    const tick = Math.floor((t - m * 4) / .5), v = seq[tick % seq.length];
+    this.title.textContent = name; this.setLed(v);
+    this.pat.textContent = [...Array(6)].map((_, i) => (v >> (5 - i)) & 1 ? '○' : '_').join(' ');
+    this.b1.setAttribute('fill', btn & 1 ? C.in : '#C9CBD3'); this.b1.setAttribute('r', btn & 1 ? 54 : 60);
+    this.b2.setAttribute('fill', btn & 2 ? C.in : '#C9CBD3'); this.b2.setAttribute('r', btn & 2 ? 54 : 60);
+  },
+};
+
+// ---- プログラムが ボードで 動くまで ------------------------------------------
+SCENES.flow = {
+  dur: 9, init() {
+    bgGrad();
+    el('text', { x: 960, y: 170, 'text-anchor': 'middle', 'font-size': 64, 'font-weight': 900, fill: '#fff' }, S, 'プログラムが ボードで 動くまで');
+    const B = [['BASIC', 'flasher.bas', C.pink], ['アセンブリ', 'READ / WRITE', C.num], ['機械語', 'program.hex', C.rom], ['回路データ', 'minimal_cpu.fs', C.alu], ['Tang Nano', 'LED が光る！', '#111']];
+    this.B = B.map(([a, b, c], i) => {
+      const g = el('g', { transform: `translate(${130 + i * 350},420)` });
+      el('rect', { width: 300, height: 200, rx: 30, fill: c, stroke: i === 4 ? C.ledOn : 'none', 'stroke-width': 6 }, g);
+      el('text', { x: 150, y: 95, 'text-anchor': 'middle', 'font-size': 44, 'font-weight': 900, fill: i === 4 ? C.ledOn : '#fff' }, g, a);
+      el('text', { x: 150, y: 150, 'text-anchor': 'middle', 'font-size': 26, 'font-weight': 700, fill: '#fff' }, g, b);
+      return g;
+    });
+    this.A = [0, 1, 2, 3].map(i => el('path', { d: `M${440 + i * 350} 520 l30 0 m-12 -14 l14 14 l-14 14`, stroke: '#A6ABCD', 'stroke-width': 8, fill: 'none', 'stroke-linecap': 'round' }));
+    this.L = ['くみたてる', 'くみたてる', '4_build', '2_write'].map((s, i) => el('text', { x: 455 + i * 350, y: 700, 'text-anchor': 'middle', 'font-size': 30, 'font-weight': 800, fill: C.soft }, S, s));
+  },
+  render(t) {
+    this.B.forEach((g, i) => { const s = back(fade(t, .3 + i * 1.1, .9 + i * 1.1)); g.setAttribute('opacity', clamp(s)); g.setAttribute('transform', `translate(${130 + i * 350},${420 + 40 * (1 - s)})`); });
+    this.A.forEach((a, i) => a.setAttribute('opacity', fade(t, .9 + i * 1.1, 1.3 + i * 1.1)));
+    this.L.forEach((a, i) => a.setAttribute('opacity', fade(t, .9 + i * 1.1, 1.3 + i * 1.1)));
+  },
+};
+
+// ---- エンディング (煽り) ---------------------------------------------------
+SCENES.ending = {
+  dur: 10, init() {
+    const d = el('defs');
+    const g = el('linearGradient', { id: 'sky', x1: 0, y1: 0, x2: 0, y2: 1 }, d);
+    el('stop', { offset: 0, 'stop-color': '#6B45BF' }, g); el('stop', { offset: 1, 'stop-color': '#E64D8C' }, g);
+    const f = el('filter', { id: 'blur', x: '-50%', y: '-50%', width: '200%', height: '200%' }, d); el('feGaussianBlur', { stdDeviation: 14 }, f);
+    const p = el('pattern', { id: 'holes', width: 28, height: 28, patternUnits: 'userSpaceOnUse' }, d); el('rect', { x: 9, y: 9, width: 10, height: 10, rx: 2, fill: '#C9CBD3' }, p);
+    el('rect', { width: 1920, height: 1080, fill: 'url(#sky)' });
+    this.rays = el('g', { opacity: .12 });
+    for (let i = 0; i < 12; i++) el('path', { d: 'M0 0 L-90 -1400 L90 -1400 Z', fill: '#fff', transform: `rotate(${i * 30})` }, this.rays);
+    // breadboard + board
+    this.bb = el('g');
+    el('rect', { x: 360, y: 560, width: 1200, height: 360, rx: 24, fill: '#F4F4F0' }, this.bb);
+    el('rect', { x: 384, y: 584, width: 1152, height: 312, fill: 'url(#holes)' }, this.bb);
+    el('rect', { x: 384, y: 722, width: 1152, height: 20, fill: '#E3E3DC' }, this.bb);
+    el('rect', { x: 420, y: 640, width: 420, height: 150, rx: 16, fill: '#1D1F24' }, this.bb);
+    el('rect', { x: 396, y: 690, width: 56, height: 52, rx: 8, fill: '#B9BCC6' }, this.bb);
+    el('text', { x: 700, y: 676, 'text-anchor': 'middle', 'font-size': 20, 'font-weight': 900, fill: '#E6E6EA' }, this.bb, 'TANG NANO 20K');
+    this.setLed = leds(el('g', {}, this.bb), 590, 765, 6, 26, 9);
+    // parts that pop in
+    this.parts = [];
+    const add = (fn) => { const g = el('g', {}, this.bb); fn(g); this.parts.push(g); };
+    add(g => { el('path', { d: 'M842 660 C 920 660, 920 620, 980 620', stroke: '#FF8C1A', 'stroke-width': 9, fill: 'none', 'stroke-linecap': 'round' }, g); el('circle', { cx: 1000, cy: 612, r: 44, fill: '#FF3B3B', opacity: .35, filter: 'url(#blur)' }, g); el('circle', { cx: 1000, cy: 612, r: 26, fill: '#FF3B3B' }, g); el('text', { x: 1000, y: 540, 'text-anchor': 'middle', 'font-size': 32, 'font-weight': 900, fill: '#fff' }, g, 'LED'); });
+    add(g => { el('path', { d: 'M842 710 C 1000 710, 1080 690, 1160 690', stroke: '#59C059', 'stroke-width': 9, fill: 'none', 'stroke-linecap': 'round' }, g); el('circle', { cx: 1190, cy: 690, r: 36, fill: '#2E3038' }, g); el('path', { d: 'M1240 660 q18 30 0 60 M1260 646 q30 44 0 88', stroke: '#3E4466', 'stroke-width': 6, fill: 'none' }, g); el('text', { x: 1190, y: 630, 'text-anchor': 'middle', 'font-size': 32, 'font-weight': 900, fill: '#3E4466' }, g, 'ブザー'); });
+    add(g => { el('path', { d: 'M842 770 C 1100 800, 1250 800, 1320 780', stroke: '#4C97FF', 'stroke-width': 9, fill: 'none', 'stroke-linecap': 'round' }, g); el('rect', { x: 1320, y: 750, width: 110, height: 66, rx: 10, fill: '#4C97FF' }, g); el('rect', { x: 1400, y: 722, width: 90, height: 18, rx: 9, fill: '#8D909B' }, g); el('text', { x: 1400, y: 710, 'text-anchor': 'middle', 'font-size': 32, 'font-weight': 900, fill: '#3E4466' }, g, 'モーター'); });
+    add(g => { el('rect', { x: 1360, y: 836, width: 80, height: 52, rx: 8, fill: '#59C059' }, g); el('circle', { cx: 1384, cy: 862, r: 12, fill: '#fff' }, g); el('circle', { cx: 1416, cy: 862, r: 12, fill: '#fff' }, g); el('text', { x: 1340, y: 874, 'text-anchor': 'end', 'font-size': 30, 'font-weight': 900, fill: '#3E4466' }, g, 'センサー'); });
+    this.l1 = el('text', { x: 960, y: 170, 'text-anchor': 'middle', 'font-size': 48, 'font-weight': 800, fill: '#fff' }, S, 'ブレッドボードが あれば、');
+    this.l2 = el('text', { x: 960, y: 240, 'text-anchor': 'middle', 'font-size': 48, 'font-weight': 800, fill: '#fff' }, S, 'このボードの 外がわに 色々な 回路を 付けられる。');
+    this.big = el('g');
+    el('text', { x: 0, y: 0, 'text-anchor': 'middle', 'font-size': 92, 'font-weight': 900, fill: '#fff', stroke: '#6B45BF', 'stroke-width': 14, 'paint-order': 'stroke' }, this.big, 'おれたちの ぼうけん');
+    el('text', { x: 0, y: 70, 'text-anchor': 'middle', 'font-size': 40, 'font-weight': 900, fill: '#FFE6F2' }, this.big, '(電子工作)');
+    el('text', { x: 0, y: 170, 'text-anchor': 'middle', 'font-size': 110, 'font-weight': 900, fill: C.glow, stroke: '#6B45BF', 'stroke-width': 16, 'paint-order': 'stroke' }, this.big, 'は これからだ！');
+  },
+  render(t) {
+    this.rays.setAttribute('transform', `translate(960,1080) rotate(${t * 6})`);
+    this.l1.setAttribute('opacity', fade(t, .2, .8)); this.l2.setAttribute('opacity', fade(t, .8, 1.4));
+    this.parts.forEach((g, i) => { const s = back(fade(t, 1.4 + i * .5, 1.9 + i * .5)); g.setAttribute('opacity', clamp(s * 1.5)); });
+    this.setLed([42, 21][Math.floor(t / .5) % 2]);
+    // 5秒から 大きい文字。ボードは 下へ
+    const k = ease(fade(t, 4.6, 5.4));
+    this.bb.setAttribute('transform', `translate(0,${k * 170})`);
+    this.l1.setAttribute('y', 170 - k * 80); this.l2.setAttribute('y', 240 - k * 80);
+    const s = back(fade(t, 5, 5.7));
+    this.big.setAttribute('transform', `translate(960,${400}) scale(${Math.max(0.001, s)})`);
+    this.big.setAttribute('opacity', clamp(s * 2));
+  },
+};
+
+// ------------------------------------------------------------
+const CODE = /*CODE*/[];
+const name = location.hash.slice(1) || 'title1';
+const sc = SCENES[name];
+sc.init();
+window.DUR = sc.dur;
+window.render = (t) => sc.render(t);
+window.render(0);
+</script>
+</body></html>

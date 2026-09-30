@@ -1,0 +1,120 @@
+00: 7E      MAIN:   READ  IN
+01: AC      WRITE $M            ; $M = ボタン
+02: 80      WRITE ALU_A         ; ALU_A = ボタン
+03: 12 16   READ  IMM, IDLE
+05: 91      WRITE JZ            ; 0 なら IDLE へ
+06: 12 01   READ  IMM, 1
+08: 81      WRITE ALU_B         ; ALU_B = 1
+09: 04      READ  ALU_SUB
+0A: 80      WRITE ALU_A         ; ALU_A = ALU_A - 1
+0B: 12 28   READ  IMM, MODE1
+0D: 91      WRITE JZ            ; 1 (S1) なら MODE1 へ
+0E: 04      READ  ALU_SUB
+0F: 80      WRITE ALU_A         ; ALU_A = ALU_A - 1
+10: 12 5E   READ  IMM, MODE2
+12: 91      WRITE JZ            ; 2 (S2) なら MODE2 へ
+13: 12 79   READ  IMM, MODE3
+15: 90      WRITE JMP           ; のこりは 3 (S1+S2)
+16: 12 01   IDLE:   READ  IMM, 0b000001
+18: AB      WRITE $L
+19: 12 1F   READ  IMM, I1
+1B: B1      WRITE $R
+1C: 12 8B   READ  IMM, STEP
+1E: 90      WRITE JMP
+1F: 12 00   I1:     READ  IMM, 0b000000
+21: AB      WRITE $L
+22: 12 00   READ  IMM, MAIN
+24: B1      WRITE $R
+25: 12 8B   READ  IMM, STEP
+27: 90      WRITE JMP
+28: 12 01   MODE1:  READ  IMM, 0b000001
+2A: AB      WRITE $L
+2B: 12 31   READ  IMM, A1
+2D: B1      WRITE $R
+2E: 12 8B   READ  IMM, STEP
+30: 90      WRITE JMP
+31: 12 02   A1:     READ  IMM, 0b000010
+33: AB      WRITE $L
+34: 12 3A   READ  IMM, A2
+36: B1      WRITE $R
+37: 12 8B   READ  IMM, STEP
+39: 90      WRITE JMP
+3A: 12 04   A2:     READ  IMM, 0b000100
+3C: AB      WRITE $L
+3D: 12 43   READ  IMM, A3
+3F: B1      WRITE $R
+40: 12 8B   READ  IMM, STEP
+42: 90      WRITE JMP
+43: 12 08   A3:     READ  IMM, 0b001000
+45: AB      WRITE $L
+46: 12 4C   READ  IMM, A4
+48: B1      WRITE $R
+49: 12 8B   READ  IMM, STEP
+4B: 90      WRITE JMP
+4C: 12 10   A4:     READ  IMM, 0b010000
+4E: AB      WRITE $L
+4F: 12 55   READ  IMM, A5
+51: B1      WRITE $R
+52: 12 8B   READ  IMM, STEP
+54: 90      WRITE JMP
+55: 12 20   A5:     READ  IMM, 0b100000
+57: AB      WRITE $L
+58: 12 00   READ  IMM, MAIN
+5A: B1      WRITE $R
+5B: 12 8B   READ  IMM, STEP
+5D: 90      WRITE JMP
+5E: 12 21   MODE2:  READ  IMM, 0b100001
+60: AB      WRITE $L
+61: 12 67   READ  IMM, B1
+63: B1      WRITE $R
+64: 12 8B   READ  IMM, STEP
+66: 90      WRITE JMP
+67: 12 12   B1:     READ  IMM, 0b010010
+69: AB      WRITE $L
+6A: 12 70   READ  IMM, B2
+6C: B1      WRITE $R
+6D: 12 8B   READ  IMM, STEP
+6F: 90      WRITE JMP
+70: 12 0C   B2:     READ  IMM, 0b001100
+72: AB      WRITE $L
+73: 12 00   READ  IMM, MAIN
+75: B1      WRITE $R
+76: 12 8B   READ  IMM, STEP
+78: 90      WRITE JMP
+79: 12 2A   MODE3:  READ  IMM, 0b101010
+7B: AB      WRITE $L
+7C: 12 82   READ  IMM, C1
+7E: B1      WRITE $R
+7F: 12 8B   READ  IMM, STEP
+81: 90      WRITE JMP
+82: 12 15   C1:     READ  IMM, 0b010101
+84: AB      WRITE $L
+85: 12 00   READ  IMM, MAIN
+87: B1      WRITE $R
+88: 12 8B   READ  IMM, STEP
+8A: 90      WRITE JMP
+8B: 2B      STEP:   READ  $L
+8C: FF      WRITE OUT           ; LED = $L
+8D: 12 50   READ  IMM, WAITN
+8F: 80      WRITE ALU_A         ; ALU_A = 待つ回数
+90: 12 01   READ  IMM, 1
+92: 81      WRITE ALU_B         ; ALU_B = 1
+93: 04      WLOOP:  READ  ALU_SUB
+94: 80      WRITE ALU_A         ; ALU_A = ALU_A - 1
+95: 12 9B   READ  IMM, WDONE
+97: 91      WRITE JZ            ; 0 になったら おわり
+98: 12 93   READ  IMM, WLOOP
+9A: 90      WRITE JMP           ; まだなら くりかえし
+9B: 7E      WDONE:  READ  IN
+9C: 80      WRITE ALU_A         ; ALU_A = いまのボタン
+9D: 2C      READ  $M
+9E: 81      WRITE ALU_B         ; ALU_B = さっきのボタン
+9F: 04      READ  ALU_SUB
+A0: 80      WRITE ALU_A         ; ALU_A = ALU_A - ALU_B
+A1: 12 A7   READ  IMM, BACK
+A3: 91      WRITE JZ            ; 同じなら BACK へ
+A4: 12 00   READ  IMM, MAIN
+A6: 90      WRITE JMP           ; 変わったら MAIN へ
+A7: 31      BACK:   READ  $R
+A8: 90      WRITE JMP           ; $R の場所へ戻る
+; size = 169 bytes
