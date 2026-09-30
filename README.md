@@ -65,13 +65,15 @@ S1・S2 ボタンを おすと、LED の 光りかたが 変わります。
 | [4. 動かしてみよう](docs/guide/04_run.md) | [9. AI に こうやって たのもう](docs/guide/09_ai.md) |
 | [5. TTA-8 ラボで 中を のぞこう](docs/guide/05_lab.md) | [10. つぎの ぼうけんへ](docs/guide/10_next.md) |
 
-## 動画
+## 紹介動画
 
-| | |
-|---|---|
-| ① CPU の 基本が わかる！ | YouTube（準備中）・X（準備中） |
-| ② 8bit の 小さい CPU を 作ろう | YouTube（準備中）・X（準備中） |
-| ③ 動かしてみよう！ | YouTube（準備中）・X（準備中） |
+<p align="center">
+  <a href="https://youtu.be/1pB3R3t_cCU"><img src="https://img.youtube.com/vi/1pB3R3t_cCU/hqdefault.jpg" width="560" alt="TTA-8 紹介動画 (YouTube)"></a>
+</p>
+
+**[▶ YouTube で 見る](https://youtu.be/1pB3R3t_cCU)**（約2分。CPU の 基本 → READ/WRITE で 計算 → 本物の ボードで 動かす まで）
+
+X（旧 Twitter）での 紹介：https://x.com/tjm8874/status/2105184836227125601
 
 ## 使うもの
 
